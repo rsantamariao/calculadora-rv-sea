@@ -100,7 +100,7 @@ tr.hit td{background:var(--ok-soft)} tr.cur td{background:var(--accent-soft)}
 .bar{height:8px;background:var(--sunken);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
 .bar i{display:block;height:100%;background:var(--accent)}
 .foot{font-size:12px;color:var(--muted);line-height:1.55;max-width:90ch}
-.foot a{color:var(--accent)}
+.foot a,.res a{color:var(--accent);word-break:break-all}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:6px;font-weight:600;font-size:13px}
 textarea#rep{width:100%;min-height:200px;font-family:var(--mono);font-size:12px;background:var(--sunken);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px}
 @media (prefers-reduced-motion:no-preference){.bar i{transition:width .25s}}
@@ -736,6 +736,23 @@ function renderGlobal(S,R){
   $('r_global').innerHTML=h;
 }
 
+
+// ===== Recomendaciones KDIGO 2024 sobre el KFRE =====
+const KDIGO_REF='KDIGO 2024 Clinical Practice Guideline for the Evaluation and Management of Chronic Kidney Disease. Kidney Int. 2024;105(4S):S117-S314. (capítulo 2, evaluación del riesgo; capítulo 5, derivación y modelos de atención).';
+const TANGRI_REF='Tangri N, Grams ME, Levey AS, et al. Multinational assessment of accuracy of equations for predicting risk of kidney failure: a meta-analysis. JAMA. 2016;315(2):164-174. ';
+function kdigoKfre(k,egfr,acr){const it=[];
+  const y5=k.y5,y2=k.y2;
+  it.push({on:egfr<60,t:'Uso de la ecuación',d:egfr<60?'ERC G3-G5: KDIGO recomienda estimar el riesgo absoluto de fallo renal con una ecuación validada externamente (recomendación 2.2.1, grado 1A).':'Con FGe ≥60 la KFRE no está validada; la decisión se basa en FGe, albuminuria y clínica.'});
+  let ref;if(y5>0.05)ref={lv:'c2',d:`Riesgo a 5 años ${pct(y5)} (>5 %): derivar a nefrología.`};
+  else if(y5>=0.03)ref={lv:'c1',d:`Riesgo a 5 años ${pct(y5)} (zona del 3-5 %): considerar la derivación a nefrología junto con FGe, albuminuria y situación clínica.`};
+  else ref={lv:'c0',d:`Riesgo a 5 años ${pct(y5)} (<3 %): no alcanza el umbral de derivación por KFRE; aplicar los criterios de FGe y albuminuria.`};
+  it.push({on:y5>=0.03,lv:ref.lv,t:'Derivación a nefrología (umbral 3-5 % a 5 años)',d:ref.d});
+  it.push({on:y2>0.10,lv:y2>0.10?'c2':'c0',t:'Atención multidisciplinar (umbral >10 % a 2 años)',d:y2>0.10?`Riesgo a 2 años ${pct(y2)}: iniciar atención multidisciplinar de la ERC avanzada.`:`Riesgo a 2 años ${pct(y2)}: no alcanza el umbral.`});
+  it.push({on:y2>0.40,lv:y2>0.40?'c3':'c0',t:'Preparación del tratamiento renal sustitutivo (umbral >40 % a 2 años)',d:y2>0.40?`Riesgo a 2 años ${pct(y2)}: educación sobre modalidades de TRS, planificación del acceso vascular y valoración para trasplante.`:`Riesgo a 2 años ${pct(y2)}: no alcanza el umbral.`});
+  const other=[];if(egfr<30)other.push('FGe <30 mL/min/1,73 m² (G4-G5)');if(acr>=300)other.push('CAC ≥300 mg/g (A3) persistente');
+  const acts=[];if(y5>0.05)acts.push('derivar a nefrología');else if(y5>=0.03)acts.push('considerar derivación a nefrología');if(y2>0.10)acts.push('atención multidisciplinar');if(y2>0.40)acts.push('preparar tratamiento renal sustitutivo');if(other.length&&!acts.some(x=>x.includes('nefrología')))acts.push('derivar a nefrología por '+other.join(' y '));
+  return {it,other,summary:acts.length?acts.join(', '):'sin indicación de derivación por KFRE; seguimiento según FGe y albuminuria'};}
+
 function renderRenal(S,R){
   let h='';const E=R.eq;
   if(Object.keys(E).length){
@@ -754,16 +771,19 @@ function renderRenal(S,R){
     h+=card('Pronóstico KDIGO y riesgo vascular','Tabla 7, nota c',g+`<div>${ckdTxt}</div>${!R.Acat?'<div class="note">Sin cociente albúmina/creatinina no se puede completar la clasificación.</div>':''}`);}
   // KFRE
   if(R.k4){const k=R.k8||R.k4;const bar=r=>`<div class="bar"><i style="width:${Math.min(100,r*100)}%"></i></div>`;
-    const tips=[];
-    if(k.y5>=0.03)tips.push('Riesgo a 5 años ≥3-5 %: derivar a nefrología (KDIGO 2024).');
-    if(k.y2>=0.10)tips.push('Riesgo a 2 años >10 %: atención multidisciplinar.');
-    if(k.y2>=0.40)tips.push('Riesgo a 2 años >40 %: planificar tratamiento renal sustitutivo y acceso vascular.');
     h+=card('Riesgo de fallo renal (KFRE)','Tangri 2016',
       `<div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div><div class="lbl">2 años</div><div class="big">${pct(k.y2)}</div>${bar(k.y2)}</div><div><div class="lbl">5 años</div><div class="big">${pct(k.y5)}</div>${bar(k.y5)}</div></div>`+
       kv([['4 variables · 2 / 5 años',pct(R.k4.y2)+' / '+pct(R.k4.y5)],R.k8?['8 variables · 2 / 5 años',pct(R.k8.y2)+' / '+pct(R.k8.y5)]:['8 variables','añade Ca, P, albúmina y HCO₃'],['Calibración',s('kfreReg')==='na'?'Norteamérica':'Fuera de Norteamérica']])+
-      tips.map(t=>`<div class="warn">${t}</div>`).join('')+
       (R.egfr>=60?'<div class="warn">KFRE está validada para FGe &lt;60 mL/min/1,73 m²; con FGe mayor el resultado no es interpretable.</div>':'')+
-      '<div class="note">Variables: edad, sexo, FGe y CAC (mg/g); el modelo de 8 añade calcio, fósforo, albúmina y bicarbonato séricos.</div>');}
+      '<div class="note">Variables: edad, sexo, FGe y CAC (mg/g); el modelo de 8 añade calcio, fósforo, albúmina y bicarbonato séricos.</div>');
+    const K=kdigoKfre(k,R.egfr,R.acr);R.kdigoK=K;
+    h+=card('Recomendación según KDIGO 2024','Guía ERC 2024',
+      `<div class="note">Basada en el KFRE de ${R.k8?'8':'4'} variables.</div>`+
+      `<ul class="reasons">${K.it.map(x=>`<li>${x.lv?chip(x.on?x.lv:'cn',x.on?'Indicado':'No indicado')+' · ':''}<strong>${x.t}.</strong> ${x.d}</li>`).join('')}</ul>`+
+      (K.other.length?`<div class="warn">Otros criterios de derivación KDIGO presentes, independientes del KFRE: ${K.other.join('; ')}.</div>`:'')+
+      `<div class="note"><strong>Conclusión:</strong> ${K.summary}.</div>`+
+      `<div class="note"><strong>Fuente de información:</strong> ${KDIGO_REF} <a href="https://doi.org/10.1016/j.kint.2023.10.018" target="_blank" rel="noopener">https://doi.org/10.1016/j.kint.2023.10.018</a></div>`+
+      `<div class="note"><strong>Ecuación KFRE:</strong> ${TANGRI_REF} <a href="https://doi.org/10.1001/jama.2015.18202" target="_blank" rel="noopener">https://doi.org/10.1001/jama.2015.18202</a></div>`);}
   else h+=card('Riesgo de fallo renal (KFRE)','',`<div class="note">Requiere edad, sexo, FGe y cociente albúmina/creatinina.</div>`);
   $('r_renal').innerHTML=h;
 }
@@ -1068,7 +1088,7 @@ function narrative(){const S=window.__S,R=window.__R,F=R.fr;const now=new Date()
   if(R.Acat)tadd('Categoría de albuminuria KDIGO',R.Acat);
   if(R.G&&R.Acat)tadd('Riesgo pronóstico KDIGO',['bajo','moderado','alto','muy alto'][KDIGO_MAP[R.G][['A1','A2','A3'].indexOf(R.Acat)]]);
   tadd('Enfermedad renal crónica según la SEA (tabla 7, nota c)',R.ckd==='grave'?'avanzada, riesgo vascular muy alto':R.ckd==='moderada'?'moderada, riesgo vascular alto':R.G?'sin criterio de ERC de riesgo':null);
-  if(R.k4){const k=R.k8||R.k4;const tx=[];if(k.y5>=0.03)tx.push('derivar a nefrología');if(k.y2>=0.10)tx.push('atención multidisciplinar');if(k.y2>=0.40)tx.push('preparar tratamiento renal sustitutivo');tadd('Interpretación del KFRE (KDIGO 2024)',tx.length?tx.join(', '):'riesgo bajo de fallo renal'+(R.egfr>=60?' (KFRE no validada con FGe ≥60)':''));}
+  if(R.kdigoK)tadd('Recomendación KDIGO 2024 según el KFRE (Kidney Int 2024, 105(4S), S117-S314)',R.kdigoK.summary+(R.egfr>=60?' (KFRE no validada con FGe ≥60)':''));
   if(R.lipDx)R.lipDx.forEach(d=>tadd('Diagnóstico lipídico · '+d[0],lc(d[1])));
   if(R.lipRef&&R.lipRef.length)tadd('Criterio de derivación a Unidad de Lípidos (tabla 40)',R.lipRef.join(', '));
   if(R.dlcn&&R.dlcn.tot>0)tadd('Dutch Lipid Clinic Network (anexo 6)',R.dlcn.tot+' puntos, '+lc(R.dlcn.cls));
