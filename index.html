@@ -100,6 +100,10 @@ tr.hit td{background:var(--ok-soft)} tr.cur td{background:var(--accent-soft)}
 .bar{height:8px;background:var(--sunken);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
 .bar i{display:block;height:100%;background:var(--accent)}
 .foot{font-size:12px;color:var(--muted);line-height:1.55;max-width:90ch}
+.pc{background:var(--accent-soft);border-radius:6px;padding:10px 12px;display:grid;gap:6px}
+.pc p{margin:0;font-size:13.5px;line-height:1.6;max-width:75ch}
+.pchead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.pchead .lbl{margin:0;color:var(--accent)}
 .foot a,.res a{color:var(--accent);word-break:break-all}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:6px;font-weight:600;font-size:13px}
 textarea#rep{width:100%;min-height:200px;font-family:var(--mono);font-size:12px;background:var(--sunken);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px}
@@ -753,6 +757,31 @@ function kdigoKfre(k,egfr,acr){const it=[];
   const acts=[];if(y5>0.05)acts.push('derivar a nefrología');else if(y5>=0.03)acts.push('considerar derivación a nefrología');if(y2>0.10)acts.push('atención multidisciplinar');if(y2>0.40)acts.push('preparar tratamiento renal sustitutivo');if(other.length&&!acts.some(x=>x.includes('nefrología')))acts.push('derivar a nefrología por '+other.join(' y '));
   return {it,other,summary:acts.length?acts.join(', '):'sin indicación de derivación por KFRE; seguimiento según FGe y albuminuria'};}
 
+
+// Párrafo explicativo para atención primaria
+const KDIGO_FREQ={G1:['1','1','2'],G2:['1','1','2'],G3a:['1','2','3'],G3b:['2','3','3'],G4:['3','3','4 o más'],G5:['4 o más','4 o más','4 o más']};
+function kfrePCtext(S,R,k,K){
+  const p=[];const n5=Math.round(k.y5*100),n2=Math.round(k.y2*100);
+  const cnt=n=>n<1?'menos de 1 necesitaría':n===1?'1 necesitaría':n+' necesitarían';
+  const sexo=S.sex==='f'?'Mujer':'Varón';
+  const ai=R.Acat?['A1','A2','A3'].indexOf(R.Acat):-1;
+  const pron=R.G&&ai>=0?['bajo','moderado','alto','muy alto'][KDIGO_MAP[R.G][ai]]:null;
+  p.push(`${sexo} de ${f(S.age)} años con un FGe de ${f(R.egfr)} mL/min/1,73 m² (${EQN[R.eqUsed]}) y un cociente albúmina/creatinina de ${f(R.acr)} mg/g, lo que corresponde a una ERC ${R.G} ${R.Acat||''}${pron?`, de riesgo pronóstico ${pron} según la clasificación KDIGO`:''}.`);
+  if(R.egfr>=60){p.push(`Con un FGe igual o superior a 60 mL/min/1,73 m², la ecuación KFRE no está validada, por lo que su resultado (${pct(k.y2)} a 2 años y ${pct(k.y5)} a 5 años) no debe usarse para tomar decisiones; la valoración debe basarse en el FGe, la albuminuria y la evolución clínica.`);}
+  else{
+    p.push(`Con la ecuación KFRE de ${R.k8?'8':'4'} variables (Tangri, 2016; calibración ${s('kfreReg')==='na'?'norteamericana':'para fuera de Norteamérica'}), el riesgo estimado de fallo renal, entendido como la necesidad de diálisis o trasplante, es del ${pct(k.y2)} a 2 años y del ${pct(k.y5)} a 5 años. Dicho de otro modo, de cada 100 pacientes con un perfil similar, ${cnt(n2)} tratamiento renal sustitutivo en los próximos 2 años y ${cnt(n5).replace(/ necesitar[íi]an?$/,'')} en los próximos 5 años.`);
+    let t;
+    if(k.y5>0.05)t=`Según la guía KDIGO 2024, un riesgo a 5 años superior al 5 % justifica la derivación a nefrología`;
+    else if(k.y5>=0.03)t=`Este riesgo se sitúa en la franja del 3-5 % a 5 años que la guía KDIGO 2024 propone como umbral para valorar la derivación a nefrología, decisión que debe tomarse junto con el FGe, la albuminuria y la situación clínica del paciente`;
+    else t=`Según la guía KDIGO 2024, un riesgo a 5 años inferior al 3 % no justifica por sí mismo la derivación a nefrología, y el paciente puede seguir controlado en atención primaria salvo que concurran otros criterios`;
+    const two=k.y2>0.40?'; el riesgo a 2 años supera el 40 %, por lo que procede además informar sobre las modalidades de tratamiento renal sustitutivo, planificar el acceso vascular y valorar la inclusión en lista de trasplante':k.y2>0.10?'; el riesgo a 2 años supera el 10 %, umbral a partir del cual se recomienda atención multidisciplinar de la ERC avanzada':'; el riesgo a 2 años no alcanza el 10 % que marca el inicio de la atención multidisciplinar ni el 40 % que indica preparar el tratamiento renal sustitutivo';
+    p.push(t+two+'.');
+  }
+  if(K.other.length)p.push(`Con independencia del KFRE, el paciente cumple otro criterio de derivación de KDIGO: ${K.other.join(' y ')}.`);
+  if(R.G&&ai>=0)p.push(`${(k.y5>=0.03||K.other.length)&&R.egfr<60||K.other.length?'Hasta la valoración por nefrología':'En el seguimiento en atención primaria'}, se aconseja repetir el FGe y el cociente albúmina/creatinina ${KDIGO_FREQ[R.G][ai]} ${KDIGO_FREQ[R.G][ai]==='1'?'vez':'veces'} al año, optimizar el control de la presión arterial, bloquear el sistema renina-angiotensina a la dosis máxima tolerada si hay albuminuria, valorar un iSGLT2, ajustar los fármacos al filtrado y evitar nefrotóxicos como los AINE.`);
+  if(R.cat!=null)p.push(`Conviene recordar que la KFRE solo estima el riesgo renal; el riesgo vascular de este paciente es ${CATN[R.cat].toLowerCase()}${R.cat>=2?', y la enfermedad cardiovascular compite con la progresión renal como causa de morbimortalidad, por lo que el control de los factores de riesgo vascular es igual de prioritario':''}.`);
+  return p.join(' ');}
+
 function renderRenal(S,R){
   let h='';const E=R.eq;
   if(Object.keys(E).length){
@@ -782,6 +811,7 @@ function renderRenal(S,R){
       `<ul class="reasons">${K.it.map(x=>`<li>${x.lv?chip(x.on?x.lv:'cn',x.on?'Indicado':'No indicado')+' · ':''}<strong>${x.t}.</strong> ${x.d}</li>`).join('')}</ul>`+
       (K.other.length?`<div class="warn">Otros criterios de derivación KDIGO presentes, independientes del KFRE: ${K.other.join('; ')}.</div>`:'')+
       `<div class="note"><strong>Conclusión:</strong> ${K.summary}.</div>`+
+      `<div class="pc"><div class="pchead"><span class="lbl">Interpretación para atención primaria</span><button type="button" id="bCopyPC">Copiar párrafo</button></div><p id="pcText">${kfrePCtext(S,R,k,K)}</p></div>`+
       `<div class="note"><strong>Fuente de información:</strong> ${KDIGO_REF} <a href="https://doi.org/10.1016/j.kint.2023.10.018" target="_blank" rel="noopener">https://doi.org/10.1016/j.kint.2023.10.018</a></div>`+
       `<div class="note"><strong>Ecuación KFRE:</strong> ${TANGRI_REF} <a href="https://doi.org/10.1001/jama.2015.18202" target="_blank" rel="noopener">https://doi.org/10.1001/jama.2015.18202</a></div>`);}
   else h+=card('Riesgo de fallo renal (KFRE)','',`<div class="note">Requiere edad, sexo, FGe y cociente albúmina/creatinina.</div>`);
@@ -975,7 +1005,7 @@ const norm=t=>t.replace(/\s+/g,' ').trim();
 function nodeLines(el,out,ind,opts){
   if(el.nodeType===3){const t=norm(el.textContent);if(t)out.push(ind+t);return;}
   if(el.nodeType!==1)return;const cl=el.classList;
-  if(cl.contains('ladder'))return;
+  if(cl.contains('ladder')||el.tagName==='BUTTON')return;
   if(cl.contains('kdigo')){const on=el.querySelector('.on');if(on){const cells=[...el.children];const i=cells.indexOf(on);const row=Math.floor(i/4),col=i%4;out.push(ind+'Riesgo pronóstico KDIGO: '+norm(on.textContent)+' ('+norm(cells[row*4].textContent)+' '+['','A1','A2','A3'][col]+')');}return;}
   if(cl.contains('kv')){const k=[...el.children];for(let i=0;i<k.length;i+=2)out.push(ind+norm(k[i].textContent)+': '+norm(k[i+1]?k[i+1].textContent:''));return;}
   if(el.tagName==='UL'){el.querySelectorAll('li').forEach(li=>out.push(ind+'- '+norm(li.textContent)));return;}
@@ -1155,6 +1185,9 @@ $('bClr').addEventListener('click',()=>{fill({sex:'m',region:'low',smk:'0',regim
 document.addEventListener('input',e=>{if(e.target.id!=='rep'&&e.target.id!=='full')render();});
 document.addEventListener('change',e=>{if(e.target.id!=='rep'&&e.target.id!=='full')render();});
 $('bFull').addEventListener('click',()=>{showTab('rep');try{history.replaceState(null,'','#rep')}catch(_){}$('full').scrollIntoView({block:'start'});});
+document.addEventListener('click',e=>{if(e.target.id!=='bCopyPC')return;const t=$('pcText').textContent;
+  const fb=()=>{const sel=window.getSelection(),rg=document.createRange();rg.selectNodeContents($('pcText'));sel.removeAllRanges();sel.addRange(rg);toast('Párrafo seleccionado: cópialo con Ctrl/Cmd + C');};
+  try{navigator.clipboard.writeText(t).then(()=>toast('Párrafo copiado'),fb);}catch(_){fb();}});
 $('bSel').addEventListener('click',()=>{$('full').focus();$('full').select();});
 $('bCopyFull').addEventListener('click',()=>{const t=$('full').value;const fb=()=>{$('full').focus();$('full').select();toast('Texto seleccionado: cópialo con Ctrl/Cmd + C');};
   try{navigator.clipboard.writeText(t).then(()=>toast('Texto copiado'),fb);}catch(_){fb();}});
