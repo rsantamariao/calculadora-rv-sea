@@ -782,6 +782,20 @@ function kfrePCtext(S,R,k,K){
   if(R.cat!=null)p.push(`Conviene recordar que la KFRE solo estima el riesgo renal; el riesgo vascular de este paciente es ${CATN[R.cat].toLowerCase()}${R.cat>=2?', y la enfermedad cardiovascular compite con la progresión renal como causa de morbimortalidad, por lo que el control de los factores de riesgo vascular es igual de prioritario':''}.`);
   return p.join(' ');}
 
+
+function kfrePCshort(S,R,k,K){
+  const ai=R.Acat?['A1','A2','A3'].indexOf(R.Acat):-1;const p=[];
+  p.push(`ERC ${R.G} ${R.Acat||''} (FGe ${f(R.egfr)} mL/min/1,73 m², CAC ${f(R.acr)} mg/g).`);
+  if(R.egfr>=60){p.push(`KFRE no validada con FGe ≥60: decidir según FGe, albuminuria y clínica.`);}
+  else{const n5=Math.round(k.y5*100);
+    p.push(`KFRE ${R.k8?'8':'4'} variables: ${pct(k.y2)} a 2 años y ${pct(k.y5)} a 5 años (${n5<1?'menos de 1 de cada 100 pacientes similares precisaría':n5===1?'1 de cada 100 pacientes similares precisaría':'unos '+n5+' de cada 100 pacientes similares precisarían'} diálisis o trasplante a 5 años).`);
+    const d=k.y5>0.05?'derivar a nefrología':k.y5>=0.03?'valorar derivación a nefrología (franja 3-5 %)':'sin indicación de derivación por KFRE';
+    const m=k.y2>0.40?'; preparar tratamiento renal sustitutivo':k.y2>0.10?'; iniciar atención multidisciplinar':'';
+    p.push(`Según KDIGO 2024: ${d}${m}${K.other.length?'; además cumple el criterio de derivación por '+K.other.join(' y '):''}.`);}
+  if(R.G&&ai>=0)p.push(`Control de FGe y CAC ${KDIGO_FREQ[R.G][ai]} ${KDIGO_FREQ[R.G][ai]==='1'?'vez':'veces'} al año y medidas de nefroprotección.`);
+  if(R.cat!=null)p.push(`Riesgo vascular ${CATN[R.cat].toLowerCase()}.`);
+  return p.join(' ');}
+
 function renderRenal(S,R){
   let h='';const E=R.eq;
   if(Object.keys(E).length){
@@ -811,7 +825,8 @@ function renderRenal(S,R){
       `<ul class="reasons">${K.it.map(x=>`<li>${x.lv?chip(x.on?x.lv:'cn',x.on?'Indicado':'No indicado')+' · ':''}<strong>${x.t}.</strong> ${x.d}</li>`).join('')}</ul>`+
       (K.other.length?`<div class="warn">Otros criterios de derivación KDIGO presentes, independientes del KFRE: ${K.other.join('; ')}.</div>`:'')+
       `<div class="note"><strong>Conclusión:</strong> ${K.summary}.</div>`+
-      `<div class="pc"><div class="pchead"><span class="lbl">Interpretación para atención primaria</span><button type="button" id="bCopyPC">Copiar párrafo</button></div><p id="pcText">${kfrePCtext(S,R,k,K)}</p></div>`+
+      `<div class="pc"><div class="pchead"><span class="lbl">Interpretación para atención primaria</span><button type="button" data-copy="pcText">Copiar párrafo</button></div><p id="pcText">${kfrePCtext(S,R,k,K)}</p></div>`+
+      `<div class="pc"><div class="pchead"><span class="lbl">Versión breve para atención primaria</span><button type="button" data-copy="pcShort">Copiar versión breve</button></div><p id="pcShort">${kfrePCshort(S,R,k,K)}</p></div>`+
       `<div class="note"><strong>Fuente de información:</strong> ${KDIGO_REF} <a href="https://doi.org/10.1016/j.kint.2023.10.018" target="_blank" rel="noopener">https://doi.org/10.1016/j.kint.2023.10.018</a></div>`+
       `<div class="note"><strong>Ecuación KFRE:</strong> ${TANGRI_REF} <a href="https://doi.org/10.1001/jama.2015.18202" target="_blank" rel="noopener">https://doi.org/10.1001/jama.2015.18202</a></div>`);}
   else h+=card('Riesgo de fallo renal (KFRE)','',`<div class="note">Requiere edad, sexo, FGe y cociente albúmina/creatinina.</div>`);
@@ -1185,8 +1200,8 @@ $('bClr').addEventListener('click',()=>{fill({sex:'m',region:'low',smk:'0',regim
 document.addEventListener('input',e=>{if(e.target.id!=='rep'&&e.target.id!=='full')render();});
 document.addEventListener('change',e=>{if(e.target.id!=='rep'&&e.target.id!=='full')render();});
 $('bFull').addEventListener('click',()=>{showTab('rep');try{history.replaceState(null,'','#rep')}catch(_){}$('full').scrollIntoView({block:'start'});});
-document.addEventListener('click',e=>{if(e.target.id!=='bCopyPC')return;const t=$('pcText').textContent;
-  const fb=()=>{const sel=window.getSelection(),rg=document.createRange();rg.selectNodeContents($('pcText'));sel.removeAllRanges();sel.addRange(rg);toast('Párrafo seleccionado: cópialo con Ctrl/Cmd + C');};
+document.addEventListener('click',e=>{const id=e.target.dataset&&e.target.dataset.copy;if(!id||!$(id))return;const t=$(id).textContent;
+  const fb=()=>{const sel=window.getSelection(),rg=document.createRange();rg.selectNodeContents($(id));sel.removeAllRanges();sel.addRange(rg);toast('Párrafo seleccionado: cópialo con Ctrl/Cmd + C');};
   try{navigator.clipboard.writeText(t).then(()=>toast('Párrafo copiado'),fb);}catch(_){fb();}});
 $('bSel').addEventListener('click',()=>{$('full').focus();$('full').select();});
 $('bCopyFull').addEventListener('click',()=>{const t=$('full').value;const fb=()=>{$('full').focus();$('full').select();toast('Texto seleccionado: cópialo con Ctrl/Cmd + C');};
