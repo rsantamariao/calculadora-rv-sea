@@ -45,11 +45,19 @@ select{font-family:var(--body)}
 .fld .row select{flex:0 0 auto;width:auto}
 .unit{font-size:12px;color:var(--muted);white-space:nowrap;font-family:var(--mono)}
 /* Resumen */
-.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
 .sum{background:var(--surface);padding:12px 14px;min-width:0}
 .sum .k{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
 .sum .v{font-family:var(--display);font-weight:700;font-size:22px;margin-top:2px;font-variant-numeric:tabular-nums}
 .sum .s{font-size:12px;color:var(--muted);margin-top:2px}
+.sum.wide{grid-column:1/-1;display:grid;gap:4px}
+@media (min-width:900px){.summary{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media (max-width:899px){.summary > .sum:nth-child(5){grid-column:1/-1}}
+@media (max-width:380px){.summary{grid-template-columns:minmax(0,1fr)}}
+.sum.wide .v{font-size:16px;margin-top:0}
+.sum.wide .s{font-size:13.5px;color:var(--ink);line-height:1.55;max-width:110ch}
+.widehead{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.widehead button{padding:4px 10px;font-size:12px}
 .chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--body);font-weight:700;font-size:12px;border-radius:999px;padding:3px 10px;white-space:nowrap}
 .c0{background:var(--ok-soft);color:var(--ok)} .c1{background:var(--high-soft);color:var(--high)} .c2{background:var(--crit-soft);color:var(--crit)} .c3{background:var(--ext-soft);color:var(--ext)} .cw{background:var(--warn-soft);color:var(--warn)} .cn{background:var(--sunken);color:var(--muted);border:1px solid var(--line)}
 /* Pestañas */
@@ -680,7 +688,8 @@ function render(){
     `<div class="sum"><div class="k">${R.model&&R.model.startsWith('SCORE')?R.model:'SCORE2'} a 10 años</div><div class="v">${pct(R.score)}</div><div class="s">${R.lpaC>1&&ok(R.scoreAdj)?'Con Lp(a): '+pct(R.scoreAdj):(ok(R.score)?'Región '+$('region').selectedOptions[0].text.toLowerCase():'')}</div></div>`,
     `<div class="sum"><div class="k">Objetivo cLDL</div><div class="v">${ok(R.ldlT)?'&lt;'+R.ldlT+' <small style="font-size:13px;color:var(--muted)">mg/dL</small>':'—'}</div><div class="s">${ok(R.ldl)?'Actual '+f(R.ldl)+' mg/dL'+(ok(R.goal)&&R.ldl>R.goal?' · faltan '+f(R.ldl-R.goal)+' mg/dL':ok(R.goal)?' · en objetivo':''):''}</div></div>`,
     `<div class="sum"><div class="k">FGe · KDIGO</div><div class="v">${ok(R.egfr)?f(R.egfr):'—'}</div><div class="s">${R.G?R.G+(R.Acat?' '+R.Acat:'')+' · '+EQN[R.eqUsed]:'mL/min/1,73 m²'}</div></div>`,
-    `<div class="sum"><div class="k">KFRE 5 años</div><div class="v">${R.k4?pct((R.k8||R.k4).y5):'—'}</div><div class="s">${R.k4?(R.k8?'8 variables':'4 variables')+' · 2 años '+pct((R.k8||R.k4).y2):'Requiere FGe y CAC'}</div></div>`
+    `<div class="sum"><div class="k">KFRE 5 años</div><div class="v">${R.k4?pct((R.k8||R.k4).y5):'—'}</div><div class="s">${R.k4?(R.k8?'8 variables':'4 variables')+' · 2 años '+pct((R.k8||R.k4).y2):'Requiere FGe y CAC'}</div></div>`+(R.k4?(()=>{const kk=R.k8||R.k4,KK=kdigoKfre(kk,R.egfr,R.acr);const sm=KK.summary.charAt(0).toUpperCase()+KK.summary.slice(1);
+      return `<div class="sum wide"><div class="widehead"><div class="k">Interpretación KFRE para atención primaria · KDIGO 2024</div><button type="button" data-copy="sumKfre">Copiar</button></div><div class="v">${sm}</div><div class="s" id="sumKfre">${kfrePCshort(S,R,kk,KK)}</div></div>`;})():'')
   ].join('');
   renderGlobal(S,R);renderRenal(S,R);renderLip(S,R);renderMet(S,R);renderLife(S,R);renderFA(S,R);renderFrag(S,R);renderQ(S,R);renderFull();
 }
