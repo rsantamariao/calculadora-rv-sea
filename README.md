@@ -28,4 +28,4 @@ Herramienta de apoyo a la decisión clínica. No sustituye el juicio clínico. L
 
 ## Autor
 
-Rafael Santamaría Olmo · ORCID [0000-0002-2627-1445](https://orcid.org/0000-0002-2627-1445)
+ORCID [0000-0002-2627-1445](https://orcid.org/0000-0002-2627-1445)
