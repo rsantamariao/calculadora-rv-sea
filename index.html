@@ -1,0 +1,1142 @@
+<title>Calculadora Riesgo Vascular SEA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: banda de paciente fija arriba, tira de resumen, pestañas; en cada pestaña datos a la izquierda y resultados a la derecha */
+:root{
+  --bg:#eef2f5; --surface:#ffffff; --sunken:#f5f7f9; --ink:#14202c; --muted:#56657a; --line:#d5dde5;
+  --accent:#0d5f6e; --accent-soft:#dcedf0; --on-accent:#ffffff;
+  --ok:#2e7d4f; --ok-soft:#e1f1e7; --warn:#a96b0c; --warn-soft:#fbefd9; --high:#c0521a; --high-soft:#fbe6da;
+  --crit:#b3261e; --crit-soft:#f8dedc; --ext:#6b1330; --ext-soft:#f0dbe2;
+  --display:"Archivo","Helvetica Neue",Arial,sans-serif; --body:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:8px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1419; --surface:#151d25; --sunken:#111820; --ink:#e3e9ef; --muted:#93a2b3; --line:#27333f;
+  --accent:#4db3c3; --accent-soft:#163740; --on-accent:#06191d;
+  --ok:#5cc187; --ok-soft:#173326; --warn:#e3a43f; --warn-soft:#3a2c12; --high:#f08a52; --high-soft:#3d2216;
+  --crit:#f0675e; --crit-soft:#401a19; --ext:#e47aa0; --ext-soft:#3c1626; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1419; --surface:#151d25; --sunken:#111820; --ink:#e3e9ef; --muted:#93a2b3; --line:#27333f;
+  --accent:#4db3c3; --accent-soft:#163740; --on-accent:#06191d;
+  --ok:#5cc187; --ok-soft:#173326; --warn:#e3a43f; --warn-soft:#3a2c12; --high:#f08a52; --high-soft:#3d2216;
+  --crit:#f0675e; --crit-soft:#401a19; --ext:#e47aa0; --ext-soft:#3c1626; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45}
+.wrap{max-width:1320px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px;display:grid;gap:16px}
+header.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(22px,3vw,30px);letter-spacing:-.01em;margin:0;text-wrap:balance}
+h1 small{display:block;font-family:var(--body);font-weight:500;font-size:13px;color:var(--muted);letter-spacing:0;margin-top:4px}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{font:inherit;font-weight:600;font-size:13px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:7px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r)}
+.patient{padding:14px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px 14px;align-items:end}
+.lbl{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
+input[type=number],input[type=text],select{width:100%;font:inherit;font-family:var(--mono);font-size:14px;color:var(--ink);background:var(--sunken);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
+select{font-family:var(--body)}
+.fld{min-width:0}
+.fld .row{display:flex;gap:6px;align-items:center}
+.fld .row input{flex:1}
+.fld .row select{flex:0 0 auto;width:auto}
+.unit{font-size:12px;color:var(--muted);white-space:nowrap;font-family:var(--mono)}
+/* Resumen */
+.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.sum{background:var(--surface);padding:12px 14px;min-width:0}
+.sum .k{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.sum .v{font-family:var(--display);font-weight:700;font-size:22px;margin-top:2px;font-variant-numeric:tabular-nums}
+.sum .s{font-size:12px;color:var(--muted);margin-top:2px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-family:var(--body);font-weight:700;font-size:12px;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.c0{background:var(--ok-soft);color:var(--ok)} .c1{background:var(--high-soft);color:var(--high)} .c2{background:var(--crit-soft);color:var(--crit)} .c3{background:var(--ext-soft);color:var(--ext)} .cw{background:var(--warn-soft);color:var(--warn)} .cn{background:var(--sunken);color:var(--muted);border:1px solid var(--line)}
+/* Pestañas */
+nav.tabs{display:flex;gap:4px;overflow-x:auto;border-bottom:1px solid var(--line);scrollbar-width:thin}
+nav.tabs button{border:none;border-bottom:3px solid transparent;border-radius:0;background:none;color:var(--muted);padding:10px 12px;white-space:nowrap;font-family:var(--display);font-size:14px}
+nav.tabs button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.panel{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.panel.one{grid-template-columns:minmax(0,1fr)!important}
+.opts{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+textarea#full{width:100%;min-height:62vh;font-family:var(--mono);font-size:12.5px;line-height:1.5;background:var(--sunken);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:12px;resize:vertical;white-space:pre;overflow:auto}
+@media (min-width:1000px){.panel{grid-template-columns:minmax(0,5fr) minmax(0,6fr)}}
+.col{display:grid;gap:14px;align-content:start;min-width:0}
+section.box{padding:14px 16px;display:grid;gap:12px;min-width:0}
+h2{font-family:var(--display);font-size:16px;font-weight:700;margin:0;display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap}
+h2 .ref{font-family:var(--body);font-size:11px;font-weight:500;color:var(--muted)}
+h3{font-family:var(--display);font-size:13px;font-weight:700;margin:4px 0 0;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px 14px}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:4px 14px}
+label.cb{display:flex;gap:8px;align-items:flex-start;font-size:13px;padding:3px 0;cursor:pointer}
+label.cb input{margin-top:3px;accent-color:var(--accent);flex:0 0 auto}
+label.cb .pts{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.res{padding:14px 16px;display:grid;gap:10px;min-width:0}
+.big{font-family:var(--display);font-weight:800;font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.big small{font-size:15px;font-weight:600;color:var(--muted)}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;font-size:13px}
+.kv > :nth-child(odd){color:var(--muted)}
+.kv > :nth-child(even){font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums}
+.note{font-size:12.5px;color:var(--muted);line-height:1.5}
+.warn{font-size:12.5px;background:var(--warn-soft);color:var(--ink);border-left:3px solid var(--warn);padding:7px 10px;border-radius:4px}
+ul.reasons{margin:0;padding-left:18px;display:grid;gap:3px;font-size:13px}
+.ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.ladder div{padding:6px 4px;text-align:center;font-size:11px;font-weight:700;border-radius:4px;background:var(--sunken);color:var(--muted);border:1px solid var(--line)}
+.ladder div.on.c0{background:var(--ok);color:var(--surface);border-color:var(--ok)} .ladder div.on.c1{background:var(--high);color:var(--surface);border-color:var(--high)} .ladder div.on.c2{background:var(--crit);color:var(--surface);border-color:var(--crit)} .ladder div.on.c3{background:var(--ext);color:var(--surface);border-color:var(--ext)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);font-weight:600}
+td.n{font-family:var(--mono);text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.hit td{background:var(--ok-soft)} tr.cur td{background:var(--accent-soft)}
+.tall{max-height:330px;overflow:auto;border:1px solid var(--line);border-radius:6px}
+.tall table th{position:sticky;top:0;background:var(--surface)}
+/* Mapa KDIGO */
+.kdigo{display:grid;grid-template-columns:52px repeat(3,minmax(0,1fr));gap:3px;font-size:11px;font-family:var(--mono)}
+.kdigo div{padding:6px 4px;text-align:center;border-radius:3px}
+.kdigo .h{color:var(--muted);font-weight:600}
+.k0{background:var(--ok-soft);color:var(--ok)} .k1{background:var(--warn-soft);color:var(--warn)} .k2{background:var(--high-soft);color:var(--high)} .k3{background:var(--crit-soft);color:var(--crit)}
+.kdigo .on{outline:3px solid var(--ink);outline-offset:-3px;font-weight:700}
+.bar{height:8px;background:var(--sunken);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.bar i{display:block;height:100%;background:var(--accent)}
+.foot{font-size:12px;color:var(--muted);line-height:1.55;max-width:90ch}
+.foot a{color:var(--accent)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:6px;font-weight:600;font-size:13px}
+textarea#rep{width:100%;min-height:200px;font-family:var(--mono);font-size:12px;background:var(--sunken);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:8px}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .25s}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>Calculadora de riesgo vascular<small>Estándares SEA 2026 para el control global del riesgo vascular · Clín Investig Arterioscler 2026;38:500889</small></h1>
+    <div class="btns">
+      <button type="button" id="bEx">Cargar ejemplo</button>
+      <button type="button" id="bClr">Vaciar datos</button>
+      <button type="button" id="bRep">Copiar resumen clínico</button>
+      <button type="button" class="primary" id="bFull">Ver datos y resultados en texto</button>
+    </div>
+  </header>
+
+  <div class="card patient" id="patient"></div>
+
+  <div class="summary" id="summary"></div>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <!-- 1 Riesgo global -->
+  <div class="panel" data-tab="global">
+    <div class="col">
+      <section class="card box"><h2>Factores de riesgo clásicos <span class="ref">Tablas 5 y 7</span></h2><div class="grid" id="f_classic"></div><div class="checks" id="f_classic_cb"></div></section>
+      <section class="card box"><h2>Diabetes</h2><div class="grid" id="f_dm"></div><div id="frvList" class="note"></div></section>
+      <section class="card box"><h2>Enfermedad vascular establecida o equivalente <span class="ref">Tabla 7, nota e</span></h2><div class="checks" id="f_eva"></div></section>
+      <section class="card box"><h2>Imagen, LOD y enfermedad subclínica <span class="ref">Tabla 5</span></h2><div class="grid" id="f_img"></div><div class="checks" id="f_img_cb"></div></section>
+      <section class="card box"><h2>Factores moduladores del riesgo <span class="ref">Tabla 7, nota b</span></h2><div class="checks" id="f_mod"></div><div id="autoMods" class="note"></div></section>
+      <section class="card box"><h2>Criterios de riesgo extremo <span class="ref">ESC/EAS 2025</span></h2><div class="checks" id="f_ext"></div></section>
+    </div>
+    <div class="col" id="r_global"></div>
+  </div>
+
+  <!-- 2 Renal -->
+  <div class="panel" data-tab="renal" hidden>
+    <div class="col">
+      <section class="card box"><h2>Función renal</h2><div class="grid" id="f_renal"></div></section>
+      <section class="card box"><h2>Variables adicionales KFRE 8 variables</h2><div class="grid" id="f_kfre"></div></section>
+    </div>
+    <div class="col" id="r_renal"></div>
+  </div>
+
+  <!-- 3 Lípidos -->
+  <div class="panel" data-tab="lip" hidden>
+    <div class="col">
+      <section class="card box"><h2>Lipoproteínas adicionales</h2><div class="grid" id="f_lip"></div><p class="note">CT, cHDL, TG, cLDL y Lp(a) se introducen en la pestaña Riesgo global.</p></section>
+      <section class="card box"><h2>Dutch Lipid Clinic Network <span class="ref">Anexo 6</span></h2><div class="checks" id="f_dlcn"></div><p class="note">El cLDL puntúa con el valor basal sin tratamiento (estimado a partir del tratamiento actual si lo hay).</p></section>
+      <section class="card box"><h2>Indicación de iPCSK9 según la SEA <span class="ref">Tabla 13</span></h2><div class="grid" id="f_pcsk"></div></section>
+    </div>
+    <div class="col" id="r_lip"></div>
+  </div>
+
+  <!-- 4 PA, glucemia, peso -->
+  <div class="panel" data-tab="met" hidden>
+    <div class="col">
+      <section class="card box"><h2>Presión arterial <span class="ref">Tablas 3, 14 y 15</span></h2><div class="grid" id="f_pa"></div></section>
+      <section class="card box"><h2>Glucemia <span class="ref">Tabla 16</span></h2><div class="grid" id="f_glu"></div></section>
+      <section class="card box"><h2>Obesidad y síndrome metabólico <span class="ref">Tablas 24 y 27</span></h2><div class="grid" id="f_ob"></div><div class="checks" id="f_ob_cb"></div></section>
+    </div>
+    <div class="col" id="r_met"></div>
+  </div>
+
+  <!-- 5 Tabaco y estilo de vida -->
+  <div class="panel" data-tab="life" hidden>
+    <div class="col">
+      <section class="card box"><h2>Tabaquismo <span class="ref">Anexos 7 y 8</span></h2><div class="grid" id="f_tab"></div><div class="grid" id="f_fag"></div></section>
+      <section class="card box"><h2>Consumo de alcohol</h2><div class="grid" id="f_alc"></div></section>
+      <section class="card box"><h2>MEDAS · adherencia a la dieta mediterránea <span class="ref">Anexo 3</span></h2><div class="checks" id="f_medas"></div></section>
+      <section class="card box"><h2>IPAQ · actividad física <span class="ref">Anexo 4</span></h2><div class="grid" id="f_ipaq"></div></section>
+    </div>
+    <div class="col" id="r_life"></div>
+  </div>
+
+  <!-- 6 FA -->
+  <div class="panel" data-tab="fa" hidden>
+    <div class="col">
+      <section class="card box"><h2>CHA₂DS₂-VA <span class="ref">Tabla 33</span></h2><div class="checks" id="f_cha"></div><div id="chaAuto" class="note"></div></section>
+      <section class="card box"><h2>Dosis de ACOD <span class="ref">Tabla 35</span></h2><div class="checks" id="f_doac"></div><p class="note">Usa edad, peso y creatinina del paciente; el aclaramiento es el de Cockcroft-Gault.</p></section>
+    </div>
+    <div class="col" id="r_fa"></div>
+  </div>
+
+  <!-- Fragilidad -->
+  <div class="panel" data-tab="frag" hidden>
+    <div class="col">
+      <section class="card box"><h2>Escala Clínica de Fragilidad <span class="ref">CFS · Rockwood</span></h2><div class="grid" id="f_cfs"></div></section>
+      <section class="card box"><h2>Escala FRAIL <span class="ref">Morley</span></h2><div class="checks" id="f_frail"></div></section>
+      <section class="card box"><h2>Fenotipo de Fried</h2><div class="checks" id="f_fried"></div><div class="grid" id="f_fried_n"></div><p class="note">Lentitud y debilidad se marcan solas con la velocidad de marcha del SPPB (≤0,8 m/s) y la dinamometría (puntos de corte de Fried por sexo e IMC).</p></section>
+      <section class="card box"><h2>SPPB · batería corta de desempeño físico</h2><div class="grid" id="f_sppb"></div><div class="checks" id="f_sppb_cb"></div></section>
+      <section class="card box"><h2>Índice de Barthel</h2><div class="grid" id="f_barthel"></div></section>
+    </div>
+    <div class="col" id="r_frag"></div>
+  </div>
+
+  <!-- 7 Cuestionarios -->
+  <div class="panel" data-tab="q" hidden>
+    <div class="col">
+      <section class="card box"><h2>Índice tobillo/brazo</h2><div class="grid" id="f_itb"></div><p class="note">Se usa la PAS braquial más alta y, en cada pierna, la más alta entre pedia y tibial posterior.</p></section>
+      <section class="card box"><h2>Cuestionario de Edimburgo <span class="ref">Anexo 1</span></h2><div class="grid" id="f_ed"></div></section>
+      <section class="card box"><h2>SQUED · disfunción eréctil <span class="ref">Anexo 2</span></h2><div class="grid" id="f_sq"></div></section>
+    </div>
+    <div class="col" id="r_q"></div>
+  </div>
+
+  <!-- Datos y resultados -->
+  <div class="panel one" data-tab="rep" hidden>
+    <section class="card box">
+      <h2>Datos introducidos y resultados <span class="ref">texto plano para copiar y pegar</span></h2>
+      <div class="opts">
+        <div class="fld" style="min-width:250px"><label class="lbl" for="o_fmt">Formato del informe</label><select id="o_fmt"><option value="par">Tres párrafos: datos, valores calculados y resultados</option><option value="sec">Por secciones y pestañas</option></select></div>
+        <label class="cb"><input type="checkbox" id="o_in" checked><span>Datos introducidos</span></label>
+        <label class="cb"><input type="checkbox" id="o_res" checked><span>Resultados, escalas y estratificación</span></label>
+        <label class="cb"><input type="checkbox" id="o_tab" checked><span>Detalle de tablas (pautas, ecuaciones)</span></label>
+        <div class="btns" style="margin-left:auto"><button type="button" id="bSel">Seleccionar todo</button><button type="button" class="primary" id="bCopyFull">Copiar texto</button></div>
+      </div>
+      <textarea id="full" readonly spellcheck="false" aria-label="Datos y resultados en texto"></textarea>
+      <p class="note">El texto se actualiza con cada cambio. Solo incluye los campos con datos y los resultados que se han podido calcular.</p>
+    </section>
+  </div>
+
+  <section class="card box" id="repBox" hidden><h2>Informe para la historia clínica</h2><p class="note">El portapapeles no está disponible en esta vista. Selecciona el texto y cópialo.</p><textarea id="rep" readonly></textarea></section>
+
+  <p class="foot">Herramienta de apoyo a la decisión que reproduce los criterios del documento de Estándares SEA 2026. SCORE2, SCORE2-OP y SCORE2-Diabetes se calculan con las ecuaciones publicadas (ESC 2021 y 2023) recalibradas para la región elegida; España pertenece a la región de bajo riesgo. La edad vascular se obtiene igualando el riesgo sin calibrar con el de una persona de referencia (no fumadora, PAS 100 mmHg, c-no-HDL 4,0 mmol/L), lo que reproduce la figura 3 con una diferencia habitual de 1-2 años. KFRE según Tangri et al., JAMA 2016 (validada en FGe &lt;60). Función renal: CKD-EPI 2009 y 2021, CKD-EPI cistatina C 2012, CKD-EPI creatinina-cistatina 2021, EKFC y Cockcroft-Gault. No sustituye el juicio clínico; no se guarda ningún dato del paciente.</p>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script>
+// ===== Motor de cálculo (funciones puras) =====
+const LN=Math.log, EXP=Math.exp, POW=Math.pow;
+const CHOL=38.67, TGF=88.57, CREAT=88.4;
+const CAL={low:{m:[-0.5699,0.7476],f:[-0.7380,0.7019]},moderate:{m:[-0.1565,0.8009],f:[-0.3143,0.7701]},high:{m:[0.3207,0.9360],f:[0.5710,0.9369]},veryhigh:{m:[0.5836,0.8294],f:[0.9412,0.8329]}};
+const CAL_OP={low:{m:[-0.34,1.19],f:[-0.52,1.01]},moderate:{m:[0.01,1.25],f:[-0.10,1.10]},high:{m:[0.08,1.15],f:[0.38,1.09]},veryhigh:{m:[0.05,0.70],f:[0.38,0.69]}};
+function recal(r,p){return 1-EXP(-EXP(p[0]+p[1]*LN(-LN(1-r))));}
+function s2LP(sex,age,smk,sbp,tc,hdl){const a=(age-60)/5,s=(sbp-120)/20,t=tc-6,h=(hdl-1.3)/0.5;
+ const c=sex==='m'?[0.3742,0.6012,0.2777,0.1458,-0.2698,-0.0755,-0.0255,-0.0281,0.0426]:[0.4648,0.7744,0.3131,0.1002,-0.2606,-0.1088,-0.0277,-0.0226,0.0613];
+ return c[0]*a+c[1]*smk+c[2]*s+c[3]*t+c[4]*h+c[5]*a*smk+c[6]*a*s+c[7]*a*t+c[8]*a*h;}
+function s2Unc(sex,lp){return 1-POW(sex==='m'?0.9605:0.9776,EXP(lp));}
+function score2(sex,age,smk,sbp,tc,hdl,region){const u=s2Unc(sex,s2LP(sex,age,smk,sbp,tc,hdl));return recal(u,CAL[region||'low'][sex]);}
+function opLP(sex,age,smk,dm,sbp,tc,hdl){const a=age-73,s=sbp-150,t=tc-6,h=hdl-1.4;
+ const c=sex==='m'?[0.0634,0.4245,0.3524,0.0094,0.0850,-0.3564,-0.0174,-0.0247,-0.0005,0.0073,0.0091]:[0.0789,0.6010,0.4921,0.0102,0.0605,-0.3040,-0.0107,-0.0255,-0.0004,-0.0009,0.0154];
+ return c[0]*a+c[1]*dm+c[2]*smk+c[3]*s+c[4]*t+c[5]*h+c[6]*a*dm+c[7]*a*smk+c[8]*a*s+c[9]*a*t+c[10]*a*h;}
+function opUnc(sex,lp){return sex==='m'?1-POW(0.7576,EXP(lp-0.0929)):1-POW(0.8082,EXP(lp-0.229));}
+function score2op(sex,age,smk,dm,sbp,tc,hdl,region){return recal(opUnc(sex,opLP(sex,age,smk,dm,sbp,tc,hdl)),CAL_OP[region||'low'][sex]);}
+// SCORE2-Diabetes (40-69 años). hba1c en mmol/mol, egfr mL/min/1,73m2
+function score2dm(sex,age,smk,sbp,tc,hdl,agediag,hba1c,egfr,region){
+ const a=(age-60)/5,s=(sbp-120)/20,t=tc-6,h=(hdl-1.3)/0.5,ad=(agediag-50)/5,hb=(hba1c-31)/9.34,e=(LN(egfr)-4.5)/0.15;
+ const c=sex==='m'?{a:0.5368,smk:0.4774,s:0.1322,dm:0.6457,t:0.1102,h:-0.1087,as:-0.0672,ab:-0.0268,adm:-0.0983,at:-0.0181,ah:0.0095,ad:-0.0998,hb:0.0955,e:-0.0591,e2:0.0058,ahb:-0.0134,ae:0.0115}
+  :{a:0.6624,smk:0.6139,s:0.1421,dm:0.8096,t:0.1127,h:-0.1568,as:-0.1122,ab:-0.0167,adm:-0.1272,at:-0.0200,ah:0.0186,ad:-0.1180,hb:0.1173,e:-0.0640,e2:0.0062,ahb:-0.0196,ae:0.0169};
+ const lp=c.a*a+c.smk*smk+c.s*s+c.dm+c.t*t+c.h*h+c.as*a*smk+c.ab*a*s+c.adm*a+c.at*a*t+c.ah*a*h+c.ad*ad+c.hb*hb+c.e*e+c.e2*e*e+c.ahb*a*hb+c.ae*a*e;
+ return recal(s2Unc(sex,lp),CAL[region||'low'][sex]);}
+// Categoría de riesgo según tabla 6 (guías ESC 2021): 0 bajo-moderado, 1 alto, 2 muy alto
+function catTabla6(age,r){const p=r*100;const t=age<50?[2.5,7.5]:age<70?[5,10]:[7.5,15];return p<t[0]?0:p<t[1]?1:2;}
+// Categoría según actualización ESC/EAS 2025
+function cat2025(r){const p=r*100;return p<2?'Bajo':p<10?'Moderado':p<20?'Alto':'Muy alto';}
+// Corrección por Lp(a) (tabla 8, Consenso SEA). Entrada mg/dL
+const LPA_PTS=[[25,1.16],[37.5,1.24],[50,1.34],[75,1.54],[100,1.78],[125,2.05],[150,2.36],[175,2.73],[200,3.0]];
+function lpaCoef(mg){if(!(mg>=25))return 1;if(mg>=200)return 3.0;for(let i=1;i<LPA_PTS.length;i++){const[x1,y1]=LPA_PTS[i-1],[x2,y2]=LPA_PTS[i];if(mg<=x2)return y1+(y2-y1)*(mg-x1)/(x2-x1);}return 3;}
+// Edad vascular: edad a la que una persona de referencia tendría el mismo riesgo (modelo sin calibrar)
+const VREF={smk:0,sbp:100,nonhdl:4.0,hdl:1.3};
+function riskAt(sex,age,smk,sbp,tc,hdl){return age<70?s2Unc(sex,s2LP(sex,age,smk,sbp,tc,hdl)):opUnc(sex,opLP(sex,age,smk,0,sbp,tc,hdl));}
+function vascularAge(sex,age,smk,sbp,tc,hdl,ref){ref=ref||VREF;const target=riskAt(sex,age,smk,sbp,tc,hdl);
+ let lo=20,hi=110;const f=x=>riskAt(sex,x,ref.smk,ref.sbp,ref.nonhdl+ref.hdl,ref.hdl)-target;
+ if(f(lo)>0)return {v:lo,below:true};if(f(hi)<0)return {v:hi,above:true};
+ for(let i=0;i<60;i++){const m=(lo+hi)/2;if(f(m)>0)hi=m;else lo=m;}return {v:(lo+hi)/2};}
+// ===== Función renal =====
+function ckdepi21(scr,age,sex){const k=sex==='f'?0.7:0.9,a=sex==='f'?-0.241:-0.302,r=scr/k;return 142*POW(Math.min(r,1),a)*POW(Math.max(r,1),-1.2)*POW(0.9938,age)*(sex==='f'?1.012:1);}
+function ckdepi09(scr,age,sex){const k=sex==='f'?0.7:0.9,a=sex==='f'?-0.329:-0.411,r=scr/k;return 141*POW(Math.min(r,1),a)*POW(Math.max(r,1),-1.209)*POW(0.993,age)*(sex==='f'?1.018:1);}
+function ckdepiCys(scys,age,sex){const r=scys/0.8;return 133*POW(Math.min(r,1),-0.499)*POW(Math.max(r,1),-1.328)*POW(0.996,age)*(sex==='f'?0.932:1);}
+function ckdepiCrCys(scr,scys,age,sex){const k=sex==='f'?0.7:0.9,a=sex==='f'?-0.219:-0.144,r=scr/k,q=scys/0.8;
+ return 135*POW(Math.min(r,1),a)*POW(Math.max(r,1),-0.544)*POW(Math.min(q,1),-0.323)*POW(Math.max(q,1),-0.778)*POW(0.9961,age)*(sex==='f'?0.963:1);}
+function ekfcQ(age,sex){if(age>=25)return sex==='f'?0.70:0.90;const l=sex==='m'?3.200+0.259*age-0.543*LN(age)-0.00763*age*age+0.0000790*age*age*age:3.080+0.177*age-0.223*LN(age)-0.00596*age*age+0.0000686*age*age*age;return EXP(l)/CREAT;}
+function ekfc(scr,age,sex){const q=ekfcQ(age,sex),r=scr/q;return 107.3*POW(r,r<1?-0.322:-1.132)*(age>40?POW(0.990,age-40):1);}
+function cockcroft(scr,age,sex,wt){return (140-age)*wt/(72*scr)*(sex==='f'?0.85:1);}
+function bsa(wt,ht){return 0.007184*POW(wt,0.425)*POW(ht,0.725);}
+function gStage(g){return g>=90?'G1':g>=60?'G2':g>=45?'G3a':g>=30?'G3b':g>=15?'G4':'G5';}
+function aStage(acr){return acr<30?'A1':acr<=300?'A2':'A3';}
+// Mapa KDIGO: 0 verde,1 amarillo,2 naranja,3 rojo
+const KDIGO_MAP={G1:[0,1,2],G2:[0,1,2],G3a:[1,2,3],G3b:[2,3,3],G4:[3,3,3],G5:[3,3,3]};
+// KFRE (Tangri JAMA 2016). acr mg/g; Ca, P mg/dL; albúmina g/dL; HCO3 mEq/L
+function kfre4(age,sex,egfr,acr,yrs,na){const lp=-0.2201*(age/10-7.036)+0.2467*((sex==='m'?1:0)-0.5642)-0.5567*(egfr/5-7.222)+0.4510*(LN(acr)-5.137);
+ const S0=yrs===2?(na?0.9750:0.9832):(na?0.9240:0.9365);return 1-POW(S0,EXP(lp));}
+function kfre8(age,sex,egfr,acr,ca,p,alb,hco3,yrs,na){const lp=-0.1992*(age/10-7.036)+0.1602*((sex==='m'?1:0)-0.5642)-0.4919*(egfr/5-7.222)+0.3364*(LN(acr)-5.137)-0.3441*(ca-9.355)+0.2604*(p-3.916)-0.07354*(alb-3.997)-0.07709*(hco3-25.57);
+ const S0=yrs===2?(na?0.9780:0.9827):(na?0.9301:0.9245);return 1-POW(S0,EXP(lp));}
+// ===== Lípidos =====
+function friedewald(tc,hdl,tg){return tc-hdl-tg/5;}
+function sampson(tc,hdl,tg){const nh=tc-hdl;return tc/0.948-hdl/0.971-(tg/8.56+tg*nh/2140-tg*tg/16100)-9.44;}
+// Tabla 11: reducción (%) de cLDL por pauta
+const REGIMENS=[
+ ['Sin tratamiento',0,0],
+ ['Ezetimiba',25,1],['Ácido bempedoico',23,1],['Ác. bempedoico + ezetimiba',42,1],
+ ['Estatina de moderada intensidad',40,1],['Estatina de alta intensidad',50,2],
+ ['Inclisirán',50,2],['Alirocumab 75',53,2],['Alirocumab 150/300',62,2],['Evolocumab 140',65,2],
+ ['Estatina moderada + ác. bempedoico',51,2],['Estatina moderada + ezetimiba',55,2],['Estatina moderada + bempedoico + ezetimiba',63,3],
+ ['Estatina alta + ác. bempedoico',59,2],['Estatina alta + ezetimiba',63,3],['Estatina alta + bempedoico + ezetimiba',69,3],
+ ['Estatina moderada + inclisirán',70,3],['Estatina moderada + alirocumab 75',72,3],['Estatina moderada + alirocumab 150',77,3],['Estatina moderada + evolocumab',79,3],
+ ['Estatina alta + inclisirán',75,3],['Estatina alta + alirocumab 75',77,3],['Estatina alta + alirocumab 150',81,4],['Estatina alta + evolocumab',83,4],
+ ['Estatina alta + ezetimiba + inclisirán',81,4],['Estatina alta + ezetimiba + alirocumab 75',82,4],['Estatina alta + ezetimiba + alirocumab 150',85,4],['Estatina alta + ezetimiba + evolocumab',87,4],
+ ['Estatina alta + ezetimiba + bempedoico + inclisirán',85,4],['Estatina alta + ezetimiba + bempedoico + alirocumab 75',85,4],['Estatina alta + ezetimiba + bempedoico + alirocumab 150',88,4],['Estatina alta + ezetimiba + bempedoico + evolocumab',89,4]];
+// Conversión HbA1c
+function a1cToMmol(p){return (p-2.15)*10.929;}
+// ===== Construcción de formularios =====
+const $=id=>document.getElementById(id);
+function fld(f){
+  if(f.t==='c') return `<label class="cb"><input type="checkbox" id="${f.id}"><span>${f.l}</span>${f.p!=null?`<span class="pts">${f.p>0?'+':''}${f.p}</span>`:''}</label>`;
+  if(f.t==='s') return `<div class="fld"><label class="lbl" for="${f.id}">${f.l}</label><select id="${f.id}">${f.o.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('')}</select></div>`;
+  const uSel=f.uo?`<select id="${f.uid}" aria-label="Unidad de ${f.l}">${f.uo.map(o=>`<option value="${o[0]}">${o[1]}</option>`).join('')}</select>`:(f.u?`<span class="unit">${f.u}</span>`:'');
+  return `<div class="fld"><label class="lbl" for="${f.id}">${f.l}</label><div class="row"><input type="number" inputmode="decimal" step="${f.st||'any'}" id="${f.id}" ${f.ph?`placeholder="${f.ph}"`:''}>${uSel}</div></div>`;
+}
+const REG=[];
+function put(id,arr){const el=$(id);el.innerHTML=arr.map(fld).join('');
+  const sec=el.closest('section');let title='Paciente';
+  if(sec){const h=sec.querySelector('h2');title=h?[...h.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim():'';}
+  const pan=el.closest('.panel');arr.forEach(f=>REG.push({f,sec:title,tab:pan?pan.dataset.tab:'pac'}));}
+const YN=[['','—'],['1','Sí'],['0','No']];
+
+put('patient',[
+  {id:'age',l:'Edad',u:'años'},
+  {t:'s',id:'sex',l:'Sexo',o:[['m','Varón'],['f','Mujer']]},
+  {id:'wt',l:'Peso',u:'kg'},{id:'ht',l:'Talla',u:'cm'},
+  {t:'s',id:'region',l:'Región SCORE2',o:[['low','Bajo riesgo (España)'],['moderate','Riesgo moderado'],['high','Riesgo alto'],['veryhigh','Riesgo muy alto']]}
+]);
+put('f_classic',[
+  {t:'s',id:'smk',l:'Tabaco',o:[['0','Nunca fumador'],['1','Exfumador (≥6 meses)'],['2','Fumador actual']]},
+  {id:'sbp',l:'PAS consulta',u:'mmHg'},{id:'dbp',l:'PAD consulta',u:'mmHg'},
+  {id:'tc',l:'Colesterol total',u:'mg/dL'},{id:'hdl',l:'cHDL',u:'mg/dL'},{id:'tg',l:'Triglicéridos',u:'mg/dL'},
+  {id:'ldl',l:'cLDL directo',u:'mg/dL',ph:'calculado'},
+  {id:'lpa',l:'Lp(a)',uid:'lpaU',uo:[['mg','mg/dL'],['nmol','nmol/L']]},
+  {t:'s',id:'regimen',l:'Hipolipemiante actual',o:REGIMENS.map((r,i)=>[i,r[0]])}
+]);
+put('f_classic_cb',[
+  {t:'c',id:'htaTx',l:'HTA diagnosticada o en tratamiento'},
+  {t:'c',id:'dislip',l:'Dislipemia diagnosticada o en tratamiento'},
+  {t:'c',id:'fh',l:'Hipercolesterolemia familiar confirmada'}
+]);
+put('f_dm',[
+  {t:'s',id:'dm',l:'Tipo',o:[['0','Sin diabetes'],['2','Diabetes tipo 2'],['1','Diabetes tipo 1']]},
+  {id:'dmAge',l:'Edad al diagnóstico',u:'años'},
+  {id:'a1c',l:'HbA1c',u:'%'}
+]);
+put('f_eva',[
+  {t:'c',id:'e_cor',l:'Episodio coronario (SCA, angina estable, revascularización)'},
+  {t:'c',id:'e_stroke',l:'Ictus o AIT'},
+  {t:'c',id:'e_pad',l:'Enfermedad arterial periférica sintomática'},
+  {t:'c',id:'e_aaa',l:'Aneurisma de aorta abdominal'},
+  {t:'c',id:'e_corSten',l:'Estenosis coronaria >50 % (coronariografía o angio-TAC)'},
+  {t:'c',id:'e_carSten',l:'Estenosis carotídea o femoral >50 % (ecografía)'}
+]);
+put('f_img',[
+  {id:'csc',l:'Calcio score coronario',u:'Agatston'},
+  {id:'plaqueMm',l:'Espesor máx. placa carotídea',u:'mm'},
+  {id:'itb',l:'ITB más bajo',u:'',ph:'o pestaña Cuestionarios'},
+  {id:'pwv',l:'VOP carotídeo-femoral',u:'m/s'}
+]);
+put('f_img_cb',[
+  {t:'c',id:'cscP75',l:'CSC ≥ percentil 75 (MESA)'},
+  {t:'c',id:'plaque',l:'Placa ateromatosa en coronaria, carótida o femoral'},
+  {t:'c',id:'lvh',l:'Hipertrofia ventricular izquierda (ECG o ecocardiograma)'}
+]);
+put('f_mod',[
+  {t:'c',id:'m_sed',l:'Sedentarismo'},{t:'c',id:'m_soc',l:'Exclusión social'},
+  {t:'c',id:'m_fam',l:'AF de EVA precoz (varón <55, mujer <60 años)'},
+  {t:'c',id:'m_infl',l:'Enfermedad inflamatoria o autoinmune, EPOC, VIH o cáncer'},
+  {t:'c',id:'m_psy',l:'Enfermedad psiquiátrica grave'},{t:'c',id:'m_nafld',l:'Hígado graso no alcohólico'},
+  {t:'c',id:'m_preg',l:'Enfermedad hipertensiva del embarazo'},{t:'c',id:'m_meno',l:'Menopausia prematura'},
+  {t:'c',id:'m_sahos',l:'SAHOS'},{t:'c',id:'m_pcr',l:'PCR ultrasensible >2 mg/L persistente'},
+  {t:'c',id:'m_apob',l:'Apo B elevada persistente'}
+]);
+put('f_ext',[
+  {t:'c',id:'x_recur',l:'Nuevos eventos vasculares con estatina a dosis máxima tolerada'},
+  {t:'c',id:'x_poly',l:'Enfermedad vascular significativa en varios territorios'},
+  {t:'c',id:'x_prog',l:'Progresión de la aterosclerosis por imagen pese a tratamiento óptimo'}
+]);
+put('f_renal',[
+  {id:'cr',l:'Creatinina',uid:'crU',uo:[['mg','mg/dL'],['umol','µmol/L']]},
+  {id:'cys',l:'Cistatina C',u:'mg/L'},
+  {id:'acr',l:'Cociente albúmina/creatinina',uid:'acrU',uo:[['mgg','mg/g'],['mgmmol','mg/mmol']]},
+  {t:'s',id:'eqSel',l:'FGe para clasificar',o:[['auto','Automático'],['ckd21','CKD-EPI 2021'],['ckd09','CKD-EPI 2009'],['ekfc','EKFC'],['crcys','CKD-EPI cr-cis 2021'],['cys','CKD-EPI cistatina 2012']]},
+  {t:'s',id:'kfreReg',l:'Calibración KFRE',o:[['non','Fuera de Norteamérica'],['na','Norteamérica']]}
+]);
+put('f_kfre',[
+  {id:'ca',l:'Calcio',u:'mg/dL'},{id:'phos',l:'Fósforo',u:'mg/dL'},
+  {id:'alb',l:'Albúmina',u:'g/dL'},{id:'hco3',l:'Bicarbonato',u:'mEq/L'}
+]);
+put('f_lip',[
+  {id:'apob',l:'Apo B',u:'mg/dL'},{id:'apoa1',l:'Apo A1',u:'mg/dL'},{id:'vldl',l:'cVLDL (ultracentrifugación)',u:'mg/dL'}
+]);
+put('f_dlcn',[
+  {t:'c',id:'d_f1',l:'Familiar 1.er grado con CI precoz o cLDL >p95',p:1},
+  {t:'c',id:'d_f2',l:'Familiar 1.er grado con xantomas o arco corneal, o niño <18 años con cLDL >p95',p:2},
+  {t:'c',id:'d_p1',l:'Enfermedad coronaria prematura',p:2},
+  {t:'c',id:'d_p2',l:'Enfermedad cerebrovascular o periférica prematura',p:1},
+  {t:'c',id:'d_x1',l:'Xantomas tendinosos',p:6},
+  {t:'c',id:'d_x2',l:'Arco corneal antes de los 45 años',p:4},
+  {t:'c',id:'d_g',l:'Mutación funcional conocida (LDLR)',p:8}
+]);
+const PCSK=[['','— Situación clínica —'],
+ ['100|HF homocigota','HF homocigota'],['160|HF heterocigota con <4 FRV','HFHe con <4 FRV'],['130|HF heterocigota con ≥4 FRV','HFHe con ≥4 FRV'],['100|HF heterocigota con DM','HFHe con DM'],['70|HF heterocigota con EVA','HFHe con EVA'],
+ ['130|Prevención secundaria estable','Prev. secundaria estable'],['100|SCA en el último año','SCA <1 año'],['100|Prev. secundaria con DM y FRV adicional','Prev. secundaria + DM + FRV adicional'],['100|Prev. secundaria con >2 FRV no controlados','Prev. secundaria + >2 FRV no controlados'],['70|Prev. secundaria con Lp(a) >50 mg/dL','Prev. secundaria + Lp(a) >50 mg/dL'],['70|EC recurrente o multivaso no revascularizable','EC recurrente o multivaso no revascularizable'],['70|EAP sintomática aislada o enfermedad polivascular','EAP sintomática o polivascular'],['70|SCA <1 año y DM','SCA <1 año + DM'],['70|Prev. secundaria con IRC ≥3 y 1 FRV','Prev. secundaria + IRC ≥3 + 1 FRV'],
+ ['130|Prev. primaria de muy alto riesgo: IRC ≥3b (no diálisis) y DM','Prev. primaria: IRC ≥3b + DM']];
+put('f_pcsk',[{t:'s',id:'pcsk',l:'Situación',o:PCSK}]);
+put('f_pa',[
+  {id:'sbpSt',l:'PAS en bipedestación',u:'mmHg'},{id:'dbpSt',l:'PAD en bipedestación',u:'mmHg'},
+  {id:'armDiff',l:'Diferencia PAS entre brazos',u:'mmHg'},
+  {id:'m24s',l:'MAPA 24 h PAS',u:'mmHg'},{id:'m24d',l:'MAPA 24 h PAD',u:'mmHg'},
+  {id:'mDs',l:'MAPA diurna PAS',u:'mmHg'},{id:'mDd',l:'MAPA diurna PAD',u:'mmHg'},
+  {id:'mNs',l:'MAPA nocturna PAS',u:'mmHg'},{id:'mNd',l:'MAPA nocturna PAD',u:'mmHg'},
+  {id:'nDrugs',l:'N.º antihipertensivos a dosis plenas',u:''}
+]);
+put('f_glu',[
+  {id:'glu',l:'Glucemia en ayunas',u:'mg/dL'},{id:'ogtt',l:'Glucemia 2 h SOG',u:'mg/dL'}
+]);
+put('f_ob',[{id:'waist',l:'Perímetro abdominal',u:'cm'}]);
+put('f_ob_cb',[
+  {t:'c',id:'tgTx',l:'Tratamiento para reducir TG'},{t:'c',id:'hdlTx',l:'Tratamiento para elevar cHDL'}
+]);
+put('f_tab',[{id:'cpd',l:'Cigarrillos/día',u:''},{id:'yrs',l:'Años fumando',u:''}]);
+put('f_fag',[
+  {t:'s',id:'fa1',l:'Primer cigarrillo tras despertar',o:[['','—'],['0','>60 min'],['1','31-60 min'],['2','6-30 min'],['3','≤5 min']]},
+  {t:'s',id:'fa2',l:'Difícil no fumar donde está prohibido',o:YN},
+  {t:'s',id:'fa3',l:'Cigarrillo que más cuesta dejar',o:[['','—'],['1','El primero de la mañana'],['0','Cualquier otro']]},
+  {t:'s',id:'fa4',l:'Cigarrillos al día',o:[['','—'],['0','1-10'],['1','11-20'],['2','21-30'],['3','31 o más']]},
+  {t:'s',id:'fa5',l:'Fuma más en las primeras horas',o:YN},
+  {t:'s',id:'fa6',l:'Fuma estando enfermo en cama',o:YN},
+  {t:'s',id:'fa7',l:'Tipo de tabaco',o:[['','—'],['0','Bajo en nicotina'],['1','Medio (1,0-1,2 mg)'],['2','Alto (>1,2 mg)']]}
+]);
+put('f_alc',[{id:'beer',l:'Cerveza (6°)',u:'mL/sem'},{id:'wine',l:'Vino (12°)',u:'mL/sem'},{id:'spirit',l:'Licor (40°)',u:'mL/sem'}]);
+const MEDAS=['Aceite de oliva como grasa principal para cocinar','≥4 cucharadas de aceite de oliva al día','≥2 raciones de verdura u hortalizas al día (≥1 cruda)','≥3 piezas de fruta al día','<1 ración de carne roja, hamburguesa o embutido al día','<1 ración de mantequilla, margarina o nata al día','<1 bebida carbonatada o azucarada al día','≥7 vasos de vino a la semana','≥3 raciones de legumbres a la semana','≥3 raciones de pescado o marisco a la semana','<2 veces repostería comercial a la semana','≥3 raciones de frutos secos a la semana','Preferencia por pollo, pavo o conejo frente a carne roja','≥2 veces a la semana sofrito con aceite de oliva'];
+put('f_medas',MEDAS.map((t,i)=>({t:'c',id:'md'+i,l:t})));
+put('f_ipaq',[
+  {id:'vd',l:'Vigorosa: días/sem',u:''},{id:'vm',l:'Vigorosa: min/día',u:''},
+  {id:'md_',l:'Moderada: días/sem',u:''},{id:'mm',l:'Moderada: min/día',u:''},
+  {id:'wd',l:'Caminar: días/sem',u:''},{id:'wm',l:'Caminar: min/día',u:''},
+  {id:'sit',l:'Sentado día laborable',u:'h/día'}
+]);
+put('f_cha',[{t:'c',id:'c_ic',l:'Insuficiencia cardiaca congestiva',p:1},{t:'c',id:'c_stroke',l:'Ictus, AIT o embolia periférica previa',p:2},{t:'c',id:'c_vasc',l:'Placa aórtica u otra enfermedad vascular no recogida',p:1},{t:'c',id:'c_hcm',l:'Miocardiopatía hipertrófica o amiloidosis cardiaca'}]);
+put('f_doac',[{t:'c',id:'verap',l:'Tratamiento con verapamilo'},{t:'c',id:'pgp',l:'Ciclosporina, dronedarona, eritromicina o ketoconazol'},{t:'c',id:'mech',l:'Válvula mecánica o estenosis mitral moderada-grave'}]);
+put('f_itb',[
+  {id:'aR',l:'PAS brazo derecho',u:'mmHg'},{id:'aL',l:'PAS brazo izquierdo',u:'mmHg'},
+  {id:'rDP',l:'Pedia derecha',u:'mmHg'},{id:'rPT',l:'Tibial post. derecha',u:'mmHg'},
+  {id:'lDP',l:'Pedia izquierda',u:'mmHg'},{id:'lPT',l:'Tibial post. izquierda',u:'mmHg'}
+]);
+put('f_ed',[
+  {t:'s',id:'ed1',l:'¿Dolor o molestias en las piernas al caminar?',o:YN},
+  {t:'s',id:'ed2',l:'¿Comienza a veces sentado o de pie sin moverse?',o:YN},
+  {t:'s',id:'ed3',l:'¿Aparece al caminar deprisa o subir una pendiente?',o:YN},
+  {t:'s',id:'ed4',l:'¿Desaparece en <10 min al detenerse?',o:YN},
+  {t:'s',id:'ed5',l:'¿Dónde lo nota?',o:[['','—'],['calf','Pantorrillas'],['thigh','Solo muslos o glúteos'],['other','Otra localización']]}
+]);
+const SQO=[['','—'],['0','Ni lo intentó'],['1','Nunca'],['2','Menos de la mitad de las veces'],['3','Aproximadamente la mitad'],['4','Más de la mitad'],['5','Casi siempre o siempre']];
+put('f_sq',[
+  {t:'s',id:'sq1',l:'Penetración posible (6 meses)',o:SQO},
+  {t:'s',id:'sq2',l:'Mantener la erección hasta finalizar',o:SQO},
+  {t:'s',id:'sq3',l:'Acto sexual satisfactorio',o:SQO}
+]);
+
+
+// ===== Fragilidad =====
+const CFS=[['','—'],['1','1 · Muy en forma'],['2','2 · En forma'],['3','3 · Bien controlado'],['4','4 · Vulnerable / muy leve'],['5','5 · Fragilidad leve'],['6','6 · Fragilidad moderada'],['7','7 · Fragilidad grave'],['8','8 · Fragilidad muy grave'],['9','9 · Enfermo terminal']];
+put('f_cfs',[{t:'s',id:'cfs',l:'Nivel (2 semanas antes de la enfermedad aguda)',o:CFS}]);
+put('f_frail',[
+  {t:'c',id:'fr_f',l:'Fatiga: cansado la mayor parte o todo el tiempo (4 semanas)'},
+  {t:'c',id:'fr_r',l:'Resistencia: dificultad para subir 10 escalones sin descansar ni ayuda'},
+  {t:'c',id:'fr_a',l:'Deambulación: dificultad para caminar 100 m sin ayuda'},
+  {t:'c',id:'fr_i',l:'Enfermedades: 5 o más de las 11 de la lista'},
+  {t:'c',id:'fr_l',l:'Pérdida de peso >5 % en el último año'}]);
+put('f_fried',[
+  {t:'c',id:'fd_w',l:'Pérdida de peso involuntaria >4,5 kg o >5 % en un año'},
+  {t:'c',id:'fd_e',l:'Agotamiento autorreferido (CES-D)'},
+  {t:'c',id:'fd_a',l:'Baja actividad física (<383 kcal/sem varones, <270 mujeres)'},
+  {t:'c',id:'fd_s',l:'Lentitud de la marcha (si no se mide en SPPB)'},
+  {t:'c',id:'fd_g',l:'Debilidad (si no se mide con dinamómetro)'}]);
+put('f_fried_n',[{id:'grip',l:'Fuerza de prensión máx.',u:'kg'}]);
+const BAL=[['','—'],['1','Sí, 10 s'],['0','No']];
+put('f_sppb',[
+  {t:'s',id:'sp_b1',l:'Equilibrio pies juntos',o:BAL},
+  {t:'s',id:'sp_b2',l:'Equilibrio semitándem',o:BAL},
+  {t:'s',id:'sp_b3',l:'Equilibrio tándem',o:[['','—'],['2','≥10 s'],['1','3-9,99 s'],['0','<3 s o no lo intenta']]},
+  {id:'sp_g',l:'Marcha 4 m (mejor intento)',u:'s'},
+  {id:'sp_c',l:'5 levantamientos de silla',u:'s'}]);
+put('f_sppb_cb',[{t:'c',id:'sp_gu',l:'No puede caminar 4 m'},{t:'c',id:'sp_cu',l:'No puede levantarse 5 veces sin brazos'}]);
+const BTH=[['b_eat','Comer',[[10,'Independiente'],[5,'Necesita ayuda'],[0,'Dependiente']]],['b_bath','Lavarse',[[5,'Independiente'],[0,'Dependiente']]],['b_dress','Vestirse',[[10,'Independiente'],[5,'Necesita ayuda'],[0,'Dependiente']]],['b_groom','Arreglarse',[[5,'Independiente'],[0,'Dependiente']]],['b_bowel','Deposiciones',[[10,'Continente'],[5,'Accidente ocasional'],[0,'Incontinente']]],['b_blad','Micción',[[10,'Continente'],[5,'Accidente ocasional'],[0,'Incontinente']]],['b_wc','Uso del retrete',[[10,'Independiente'],[5,'Necesita ayuda'],[0,'Dependiente']]],['b_tr','Traslado sillón-cama',[[15,'Independiente'],[10,'Mínima ayuda'],[5,'Gran ayuda'],[0,'Dependiente']]],['b_walk','Deambulación',[[15,'Independiente 50 m'],[10,'Con ayuda 50 m'],[5,'En silla de ruedas'],[0,'Dependiente']]],['b_st','Escaleras',[[10,'Independiente'],[5,'Necesita ayuda'],[0,'Dependiente']]]];
+put('f_barthel',BTH.map(([id,l,o])=>({t:'s',id,l,o:[['','—'],...o.map(x=>[x[0],x[0]+' · '+x[1]])]})));
+function friedGripCut(sex,bmi){if(!ok(bmi))bmi=25;return sex==='m'?(bmi<=24?29:bmi<=28?30:32):(bmi<=23?17:bmi<=26?17.3:bmi<=29?18:21);}
+function frailCalc(S,R){const F={};
+  const cf=s('cfs');if(cf)F.cfs=+cf;
+  const fr=['fr_f','fr_r','fr_a','fr_i','fr_l'].filter(c);F.frailN=fr.length;F.frailAny=fr.length>0;
+  // SPPB
+  const b1=s('sp_b1'),b2=s('sp_b2'),b3=s('sp_b3'),gt=v('sp_g'),ct=v('sp_c');
+  let bal=null;if(b1!==''){bal=+b1;if(b1==='1'){if(b2!=='')bal+=+b2;if(b2==='1'&&b3!=='')bal+=+b3;}}
+  let gp=null;if(c('sp_gu'))gp=0;else if(ok(gt))gp=gt<4.82?4:gt<=6.20?3:gt<=8.70?2:1;
+  let cp=null;if(c('sp_cu'))cp=0;else if(ok(ct))cp=ct<=11.19?4:ct<=13.69?3:ct<=16.69?2:ct<=60?1:0;
+  F.sppbParts={bal,gp,cp};if(bal!=null&&gp!=null&&cp!=null)F.sppb=bal+gp+cp;
+  F.speed=ok(gt)&&gt>0&&!c('sp_gu')?4/gt:NaN;
+  // Fried
+  const slow=c('fd_s')||(ok(F.speed)&&F.speed<=0.8)||c('sp_gu');
+  const grip=v('grip');F.gripCut=friedGripCut(S.sex,R.bmi);const weak=c('fd_g')||(ok(grip)&&grip<=F.gripCut);
+  const fd=[c('fd_w')&&'pérdida de peso',c('fd_e')&&'agotamiento',c('fd_a')&&'baja actividad',slow&&'lentitud',weak&&'debilidad'].filter(Boolean);
+  F.fried=fd;F.friedAny=fd.length>0||ok(grip)||ok(F.speed);
+  // Barthel
+  const bv=BTH.map(b=>s(b[0]));F.barthelDone=bv.every(x=>x!=='');F.barthelN=bv.filter(x=>x!=='').length;F.barthel=bv.reduce((t,x)=>t+(x===''?0:+x),0);
+  // Síntesis
+  const fl=[],pf=[];
+  if(F.cfs>=5)fl.push('CFS '+F.cfs);else if(F.cfs===4)pf.push('CFS 4');
+  if(F.frailN>=3)fl.push('FRAIL '+F.frailN);else if(F.frailN>=1)pf.push('FRAIL '+F.frailN);
+  if(fd.length>=3)fl.push('Fried '+fd.length);else if(fd.length>=1)pf.push('Fried '+fd.length);
+  if(F.sppb!=null){if(F.sppb<10)fl.push('SPPB '+F.sppb);}
+  F.flags=fl;F.pre=pf;F.state=fl.length?2:pf.length?1:(F.cfs||F.sppb!=null||F.frailAny||F.friedAny?0:null);
+  return F;}
+
+// ===== Pestañas =====
+const TABS=[['global','Riesgo global'],['renal','Función renal y KFRE'],['lip','Lípidos'],['met','PA, glucemia y peso'],['life','Tabaco y estilo de vida'],['fa','Fibrilación auricular'],['frag','Fragilidad'],['q','Cuestionarios'],['rep','Datos y resultados']];
+$('tabs').innerHTML=TABS.map(t=>`<button type="button" role="tab" id="t-${t[0]}" aria-selected="false" data-t="${t[0]}">${t[1]}</button>`).join('');
+function showTab(name){if(!TABS.some(t=>t[0]===name))name='global';
+  document.querySelectorAll('.panel').forEach(p=>p.hidden=p.dataset.tab!==name);
+  document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.t===name));}
+$('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;showTab(b.dataset.t);try{history.replaceState(null,'','#'+b.dataset.t)}catch(_){location.hash=b.dataset.t}});
+window.addEventListener('hashchange',()=>showTab(location.hash.slice(1)));
+
+// ===== Utilidades =====
+const v=id=>{const e=$(id);if(!e)return NaN;const x=parseFloat(String(e.value).replace(',','.'));return isFinite(x)?x:NaN;};
+const c=id=>!!($(id)&&$(id).checked);
+const s=id=>$(id)?$(id).value:'';
+const ok=x=>typeof x==='number'&&isFinite(x);
+const f=(x,d=0)=>ok(x)?x.toLocaleString('es-ES',{minimumFractionDigits:d,maximumFractionDigits:d}):'—';
+const pct=(r,d=1)=>ok(r)?f(r*100,d)+' %':'—';
+const CATN=['Bajo-moderado','Alto','Muy alto','Extremo'];
+const chip=(k,t)=>`<span class="chip ${k}">${t}</span>`;
+const kv=rows=>`<div class="kv">${rows.filter(Boolean).map(r=>`<span>${r[0]}</span><span>${r[1]}</span>`).join('')}</div>`;
+const card=(title,ref,body)=>`<section class="card res"><h2>${title}${ref?` <span class="ref">${ref}</span>`:''}</h2>${body}</section>`;
+
+// ===== Cálculo principal =====
+function compute(){
+  const S={age:v('age'),sex:s('sex'),wt:v('wt'),ht:v('ht'),region:s('region'),smk:+s('smk'),sbp:v('sbp'),dbp:v('dbp'),tc:v('tc'),hdl:v('hdl'),tg:v('tg'),ldlD:v('ldl'),dm:+s('dm'),dmAge:v('dmAge'),a1c:v('a1c'),reg:+s('regimen')};
+  const R={warn:[]};
+  const cur=S.smk===2?1:0;
+  // Antropometría
+  R.bmi=ok(S.wt)&&ok(S.ht)?S.wt/((S.ht/100)**2):NaN;
+  // Lípidos
+  R.nonhdl=ok(S.tc)&&ok(S.hdl)?S.tc-S.hdl:NaN;
+  R.fried=ok(R.nonhdl)&&ok(S.tg)?friedewald(S.tc,S.hdl,S.tg):NaN;
+  R.samp=ok(R.nonhdl)&&ok(S.tg)?sampson(S.tc,S.hdl,S.tg):NaN;
+  if(ok(S.ldlD)){R.ldl=S.ldlD;R.ldlSrc='directo';}
+  else if(ok(R.fried)&&S.tg<175&&R.fried>=70){R.ldl=R.fried;R.ldlSrc='Friedewald';}
+  else if(ok(R.samp)&&S.tg<=800){R.ldl=R.samp;R.ldlSrc='Sampson-NIH';}
+  else R.ldl=NaN;
+  const regR=REGIMENS[S.reg]?REGIMENS[S.reg][1]:0;
+  R.ldlBase=ok(R.ldl)?R.ldl/(1-regR/100):NaN;
+  const lpaRaw=v('lpa');R.lpaMg=ok(lpaRaw)?(s('lpaU')==='nmol'?lpaRaw/2:lpaRaw):NaN;R.lpaNmol=ok(lpaRaw)?(s('lpaU')==='nmol'?lpaRaw:lpaRaw*2):NaN;
+  // Renal
+  let cr=v('cr');if(ok(cr)&&s('crU')==='umol')cr=cr/CREAT;R.cr=cr;
+  const cys=v('cys');let acr=v('acr');if(ok(acr)&&s('acrU')==='mgmmol')acr=acr*8.84;R.acr=acr;
+  const A=S.age,X=S.sex;
+  R.eq={};
+  if(ok(cr)&&ok(A)){R.eq.ckd21=ckdepi21(cr,A,X);R.eq.ckd09=ckdepi09(cr,A,X);R.eq.ekfc=ekfc(cr,A,X);if(ok(S.wt))R.cg=cockcroft(cr,A,X,S.wt);}
+  if(ok(cys)&&ok(A)){R.eq.cys=ckdepiCys(cys,A,X);if(ok(cr))R.eq.crcys=ckdepiCrCys(cr,cys,A,X);}
+  let sel=s('eqSel');if(sel==='auto')sel=R.eq.crcys?'crcys':'ckd21';
+  R.eqUsed=sel;R.egfr=R.eq[sel];
+  if(ok(R.egfr)){R.G=gStage(R.egfr);}
+  if(ok(acr))R.Acat=aStage(acr);
+  // ERC según la SEA (tabla 7, nota c)
+  R.ckd=null;
+  if(ok(R.egfr)){const g=R.egfr,a=ok(acr)?acr:null;
+    if(g<30||(g<45&&a!=null&&a>=30)||(g<60&&a!=null&&a>300))R.ckd='grave';
+    else if((g>=30&&g<45)||(g>=45&&g<60&&a!=null&&a>=30)||(a!=null&&a>300&&g>=60))R.ckd='moderada';
+    else if(g<60)R.ckd='moderada';}
+  // KFRE
+  if(ok(R.egfr)&&ok(acr)&&ok(A)&&acr>0){const na=s('kfreReg')==='na';
+    R.k4={y2:kfre4(A,X,R.egfr,acr,2,na),y5:kfre4(A,X,R.egfr,acr,5,na)};
+    const ca=v('ca'),p=v('phos'),al=v('alb'),hc=v('hco3');
+    if([ca,p,al,hc].every(ok))R.k8={y2:kfre8(A,X,R.egfr,acr,ca,p,al,hc,2,na),y5:kfre8(A,X,R.egfr,acr,ca,p,al,hc,5,na)};}
+  // SCORE2 / OP
+  const tcM=S.tc/CHOL,hdlM=S.hdl/CHOL;
+  R.score=NaN;
+  if([A,S.sbp,S.tc,S.hdl].every(ok)){
+    if(A>=40&&A<70){R.model='SCORE2';R.score=score2(X,A,cur,S.sbp,tcM,hdlM,S.region);}
+    else if(A>=70&&A<=89){R.model='SCORE2-OP';R.score=score2op(X,A,cur,S.dm?1:0,S.sbp,tcM,hdlM,S.region);}
+    else R.model=A<40?'fuera de rango (<40 años)':'fuera de rango (>89 años)';
+    if(S.dm&&A>=40&&A<70&&ok(S.dmAge)&&ok(S.a1c)&&ok(R.egfr))R.scoreDM=score2dm(X,A,cur,S.sbp,tcM,hdlM,S.dmAge,a1cToMmol(S.a1c),R.egfr,S.region);
+    if(A>=30&&A<=89){const va=vascularAge(X,A,cur,S.sbp,tcM,hdlM);R.vage=va;}
+  }
+  R.lpaC=lpaCoef(R.lpaMg);
+  R.scoreAdj=ok(R.score)?Math.min(R.score*R.lpaC,0.99):NaN;
+  // ITB desde cuestionario
+  const arm=Math.max(v('aR')||0,v('aL')||0);
+  const legR=Math.max(v('rDP')||0,v('rPT')||0),legL=Math.max(v('lDP')||0,v('lPT')||0);
+  R.itbR=arm&&legR?legR/arm:NaN;R.itbL=arm&&legL?legL/arm:NaN;
+  const itbCalc=[R.itbR,R.itbL].filter(ok);R.itbMin=itbCalc.length?Math.min(...itbCalc):NaN;R.itbMax=itbCalc.length?Math.max(...itbCalc):NaN;
+  S.itb=ok(v('itb'))?v('itb'):R.itbMin;
+  // Glucemia y SM
+  const glu=v('glu'),ogtt=v('ogtt'),waist=v('waist');
+  R.prediab=!S.dm&&((glu>=100&&glu<126)||(S.a1c>=5.7&&S.a1c<6.5)||(ogtt>=140&&ogtt<200));
+  R.dmSusp=!S.dm&&(glu>=126||S.a1c>=6.5||ogtt>=200);
+  const smc=[];
+  if(ok(waist)&&waist>=(X==='m'?94:80))smc.push('Perímetro abdominal elevado');
+  if((ok(S.tg)&&S.tg>=150)||c('tgTx'))smc.push('TG ≥150 mg/dL o tratamiento');
+  if((ok(S.hdl)&&S.hdl<(X==='m'?40:50))||c('hdlTx'))smc.push('cHDL bajo o tratamiento');
+  if((S.sbp>=130||S.dbp>=85)||c('htaTx'))smc.push('PA ≥130/85 o tratamiento');
+  if(glu>=100||S.dm)smc.push('Glucemia ≥100 mg/dL o tratamiento');
+  R.smc=smc;R.sm=smc.length>=3;
+  // FRV para diabetes
+  const hta=c('htaTx')||S.sbp>=140||S.dbp>=90;
+  const frv=[];if(cur)frv.push('tabaquismo');if(hta)frv.push('HTA');if(c('dislip')||R.ldlBase>=116||S.reg>0)frv.push('dislipemia');if(R.bmi>=30)frv.push('obesidad');
+  R.frv=frv;R.hta=hta;
+  // LOD, EVS, moduladores
+  const lod=[],evs=[],mods=[];
+  if(c('lvh'))lod.push('Hipertrofia ventricular izquierda');
+  if(v('pwv')>10)lod.push('VOP c-f >10 m/s');
+  if(A>=65&&S.sbp-S.dbp>=60)lod.push('Presión de pulso ≥60 mmHg');
+  if(acr>30&&!R.ckd)lod.push('Albuminuria >30 mg/g');
+  if(ok(S.itb)&&S.itb<0.9)evs.push('ITB <0,9');
+  if(c('plaque'))evs.push('Placa ateromatosa');
+  const csc=v('csc');
+  if((csc>=100&&csc<=300)||c('cscP75'))evs.push('CSC 100-299 o ≥p75');
+  if(v('plaqueMm')>=2.5)evs.push('Placa carotídea ≥2,5 mm');
+  [['m_sed','Sedentarismo'],['m_soc','Exclusión social'],['m_fam','AF de EVA precoz'],['m_infl','Enfermedad inflamatoria/autoinmune, EPOC, VIH o cáncer'],['m_psy','Enfermedad psiquiátrica grave'],['m_nafld','Hígado graso'],['m_preg','Enfermedad hipertensiva del embarazo'],['m_meno','Menopausia prematura'],['m_sahos','SAHOS'],['m_pcr','PCR elevada persistente'],['m_apob','Apo B elevada']].forEach(([id,t])=>{if(c(id))mods.push(t)});
+  const auto=[];
+  if(R.bmi>=30)auto.push('Obesidad (IMC ≥30)');
+  if(R.sm)auto.push('Síndrome metabólico');
+  if(R.prediab)auto.push('Prediabetes');
+  if(S.tg>=150)auto.push('TG elevados');
+  if(R.lpaMg>=50)auto.push('Lp(a) ≥50 mg/dL');
+  R.autoMods=auto;mods.push(...auto);
+  R.lod=lod;R.evs=evs;R.mods=mods;
+  // ===== Clasificación global (tabla 7) =====
+  const why=[],notes=[];let cat=null;
+  const evaC=[['e_cor','Episodio coronario'],['e_stroke','Ictus o AIT'],['e_pad','EAP sintomática'],['e_aaa','Aneurisma de aorta abdominal'],['e_corSten','Estenosis coronaria >50 %'],['e_carSten','Estenosis carotídea/femoral >50 %']].filter(([id])=>c(id)).map(x=>x[1]);
+  if(csc>300)evaC.push('CSC >300');
+  const dmYears=ok(S.dmAge)&&ok(A)?A-S.dmAge:NaN;R.dmYears=dmYears;
+  if(evaC.length){cat=2;why.push('EVA clínica o equivalente: '+evaC.join(', '));}
+  else if(R.ckd==='grave'){cat=2;why.push(`ERC grave (FGe ${f(R.egfr)} ${ok(acr)?'· CAC '+f(acr)+' mg/g':''})`);}
+  else if(S.dm&&(R.frv.length>=3||(S.dm===1&&dmYears>20))){cat=2;why.push(S.dm===1&&dmYears>20?'DM1 de más de 20 años de evolución':'DM con ≥3 FRV ('+R.frv.join(', ')+')');}
+  else if(S.dm||R.ckd==='moderada'){
+    const base=[S.dm?'DM'+S.dm:null,R.ckd==='moderada'?'ERC moderada':null].filter(Boolean).join(' + ');
+    if(lod.length||evs.length){cat=2;why.push(base+' con '+[...lod,...evs].join(', '));}
+    else if(mods.length>=2){cat=2;why.push(base+' con ≥2 moduladores ('+mods.join(', ')+')');notes.push('Escalado por moduladores: requiere confirmación clínica (nota b de la tabla 7).');}
+    else{cat=1;why.push(base+' sin LOD ni EVS');}
+    if(S.dm&&!lod.length&&!evs.length&&ok(dmYears)&&dmYears<10&&((S.dm===1&&A<35)||(S.dm===2&&A<50)))notes.push('DM1 <35 años o DM2 <50 años con <10 años de evolución: el riesgo puede ser moderado (tabla 7, nota d).');
+  } else {
+    if(ok(R.scoreAdj)){cat=catTabla6(A,R.scoreAdj);why.push(`${R.model} ${pct(R.score)}${R.lpaC>1?` · ajustado por Lp(a) ${pct(R.scoreAdj)}`:''} → ${CATN[cat]} (tabla 6)`);}
+    else if(ok(A)&&A<40){cat=0;notes.push('SCORE2 no aplicable antes de los 40 años: informar con la edad vascular y el riesgo a lo largo de la vida.');}
+    const direct=[];
+    if(S.sbp>=180||S.dbp>=110)direct.push('PA ≥180/110 mmHg');
+    if(R.ldlBase>=190)direct.push('cLDL basal ≥190 mg/dL');
+    if(c('fh'))direct.push('Hipercolesterolemia familiar');
+    if(R.lpaMg>180)direct.push('Lp(a) >180 mg/dL (equivale a HFHe)');
+    if(v('plaqueMm')>=2.5)direct.push('Placa carotídea ≥2,5 mm');
+    if(direct.length&&(cat==null||cat<1)){cat=1;why.push('Alto por definición: '+direct.join(', '));}
+    else if(direct.length)why.push('Criterios de alto riesgo presentes: '+direct.join(', '));
+    if(cat!=null&&(lod.length||evs.length)&&cat<2){cat++;why.push('Sube un escalón por '+[...lod,...evs].join(', '));}
+    else if(cat!=null&&mods.length>=2&&cat<2){cat++;why.push('Sube un escalón por ≥2 moduladores ('+mods.join(', ')+')');notes.push('El escalado por moduladores exige que el riesgo esté próximo a la categoría superior; confírmalo clínicamente.');}
+    if(csc===0&&!S.dm&&!c('m_fam')&&!(cur&&v('cpd')>=20))notes.push('CSC = 0 sin DM, AF precoz ni tabaquismo intenso: riesgo a 10 años muy bajo, no justifica iniciar fármacos preventivos.');
+  }
+  if(cat!=null&&cat>=2&&(c('x_recur')||c('x_poly')||c('x_prog'))){cat=3;why.push('Riesgo extremo: '+[c('x_recur')&&'recurrencia con estatina máxima',c('x_poly')&&'enfermedad polivascular',c('x_prog')&&'progresión por imagen'].filter(Boolean).join(', '));}
+  R.cat=cat;R.why=why;R.notes=notes;
+  R.fr=frailCalc(S,R);
+  // ===== Objetivos de cLDL =====
+  if(cat!=null){
+    const t=[100,70,55,40][cat];R.ldlT=t;R.nhT=t+30;
+    if(ok(R.ldlBase)){R.goal=cat>=1?Math.min(t,R.ldlBase*0.5):t;R.need=Math.max(0,1-R.goal/R.ldlBase);}
+  }
+  return {S,R};
+}
+
+// ===== Render =====
+function render(){
+  const {S,R}=compute();window.__R=R;window.__S=S;
+  const A=S.age,X=S.sex;
+  // Resumen
+  const catChip=R.cat!=null?chip('c'+R.cat,CATN[R.cat]):chip('cn','Faltan datos');
+  $('summary').innerHTML=[
+    `<div class="sum"><div class="k">Riesgo vascular global</div><div class="v">${catChip}</div><div class="s">${R.why[0]?R.why[0].split(':')[0].split('→')[0]:'Edad, sexo, PA y lípidos'}</div></div>`,
+    `<div class="sum"><div class="k">${R.model&&R.model.startsWith('SCORE')?R.model:'SCORE2'} a 10 años</div><div class="v">${pct(R.score)}</div><div class="s">${R.lpaC>1&&ok(R.scoreAdj)?'Con Lp(a): '+pct(R.scoreAdj):(ok(R.score)?'Región '+$('region').selectedOptions[0].text.toLowerCase():'')}</div></div>`,
+    `<div class="sum"><div class="k">Objetivo cLDL</div><div class="v">${ok(R.ldlT)?'&lt;'+R.ldlT+' <small style="font-size:13px;color:var(--muted)">mg/dL</small>':'—'}</div><div class="s">${ok(R.ldl)?'Actual '+f(R.ldl)+' mg/dL'+(ok(R.goal)&&R.ldl>R.goal?' · faltan '+f(R.ldl-R.goal)+' mg/dL':ok(R.goal)?' · en objetivo':''):''}</div></div>`,
+    `<div class="sum"><div class="k">FGe · KDIGO</div><div class="v">${ok(R.egfr)?f(R.egfr):'—'}</div><div class="s">${R.G?R.G+(R.Acat?' '+R.Acat:'')+' · '+EQN[R.eqUsed]:'mL/min/1,73 m²'}</div></div>`,
+    `<div class="sum"><div class="k">KFRE 5 años</div><div class="v">${R.k4?pct((R.k8||R.k4).y5):'—'}</div><div class="s">${R.k4?(R.k8?'8 variables':'4 variables')+' · 2 años '+pct((R.k8||R.k4).y2):'Requiere FGe y CAC'}</div></div>`
+  ].join('');
+  renderGlobal(S,R);renderRenal(S,R);renderLip(S,R);renderMet(S,R);renderLife(S,R);renderFA(S,R);renderFrag(S,R);renderQ(S,R);renderFull();
+}
+const EQN={ckd21:'CKD-EPI 2021',ckd09:'CKD-EPI 2009',ekfc:'EKFC',crcys:'CKD-EPI cr-cis 2021',cys:'CKD-EPI cis 2012'};
+
+function renderGlobal(S,R){
+  const A=S.age;
+  $('frvList').innerHTML=S.dm?`FRV detectados: <strong>${R.frv.length?R.frv.join(', '):'ninguno'}</strong> (${R.frv.length}). ${ok(R.dmYears)?'Evolución: '+f(R.dmYears)+' años.':''}`:'';
+  $('autoMods').innerHTML=R.autoMods.length?'Detectados con los datos introducidos: <strong>'+R.autoMods.join(', ')+'</strong>.':'';
+  let h='';
+  // Categoría
+  const lad=`<div class="ladder">${CATN.map((n,i)=>`<div class="c${i} ${R.cat===i?'on':''}">${n}</div>`).join('')}</div>`;
+  h+=card('Categoría de riesgo vascular global','Tabla 7',
+    (R.cat!=null?`<div class="big">${CATN[R.cat]}</div>`:`<div class="note">Introduce edad, sexo, PAS, colesterol total y cHDL, o una condición que clasifique por sí misma (EVA, DM, ERC).</div>`)+lad+
+    (R.why.length?`<ul class="reasons">${R.why.map(w=>`<li>${w}</li>`).join('')}</ul>`:'')+
+    R.notes.map(n=>`<div class="warn">${n}</div>`).join(''));
+  // SCORE2
+  let sb='';
+  if(ok(R.score)){
+    const c6=catTabla6(A,R.score);
+    sb+=`<div class="big">${pct(R.score)} <small>${R.model}</small></div>`+
+      kv([['Categoría por edad (tabla 6)',CATN[c6]],['Categoría ESC/EAS 2025',cat2025(R.score)],
+          R.lpaC>1?['Coeficiente Lp(a) (tabla 8)','× '+f(R.lpaC,2)]:null,R.lpaC>1?['Riesgo ajustado por Lp(a)',pct(R.scoreAdj)]:null,
+          ['c-no-HDL',f(R.nonhdl)+' mg/dL ('+f(R.nonhdl/CHOL,1)+' mmol/L)'],['Tabaco en el modelo',S.smk===2?'fumador':'no fumador']]);
+    if(S.dm&&R.model==='SCORE2')sb+=`<div class="note">En DM la ecuación de referencia es SCORE2-Diabetes; SCORE2 se muestra solo como orientación.</div>`;
+  } else sb=`<div class="note">${R.model?'Modelo '+R.model+'.':'Necesita edad (40-89), sexo, PAS, colesterol total y cHDL.'}</div>`;
+  if(ok(R.scoreDM))sb+=kv([['SCORE2-Diabetes',pct(R.scoreDM)],['Categoría por edad',CATN[catTabla6(A,R.scoreDM)]]]);
+  else if(S.dm&&A>=40&&A<70)sb+=`<div class="note">SCORE2-Diabetes requiere edad al diagnóstico, HbA1c y creatinina (FGe).</div>`;
+  h+=card('Riesgo a 10 años de eventos CV fatales y no fatales','SCORE2 · SCORE2-OP · SCORE2-DM',sb);
+  // Edad vascular
+  if(R.vage){const va=R.vage.v;const sp=va/A;
+    h+=card('Edad vascular','Figura 3',`<div class="big">${R.vage.below?'≤':R.vage.above?'≥':''}${f(va)} <small>años</small></div>`+
+      kv([['Edad cronológica',f(A)+' años'],['Diferencia',(va-A>=0?'+':'')+f(va-A)+' años'],['Velocidad de envejecimiento vascular',f(sp,2)+'×']])+
+      `<div class="note">Edad de una persona no fumadora con PA y colesterol óptimos que tendría el mismo riesgo. Útil en adultos jóvenes con riesgo absoluto bajo.</div>`);}
+  // cLDL
+  if(R.cat!=null){
+    const t=R.ldlT;let act='';
+    const b=R.ldlBase;
+    if(R.cat===0){act=!ok(b)?'':b<116?'cLDL ideal; no precisa tratamiento. Recomendaciones de hábitos de vida y revaluación periódica.':b<=190?'Cambios terapéuticos del estilo de vida; valorar alimentos funcionales (fitoesteroles, fibra). Fármaco individualizado si coexisten ≥2 FRV (edad, IMC >30, tabaco, HTA, AF precoz, dislipemia aterogénica, SM, Lp(a) >50).':'cLDL >190: descartar HF e iniciar tratamiento (objetivo <70).';}
+    if(R.cat===1)act='CTEV; si el cLDL persiste >70 mg/dL, tratamiento de alta intensidad que asegure un descenso ≥50 %. Estatina primero y, si no se alcanza, ezetimiba o ácido bempedoico'+(b>140?'. Con cLDL basal >140 mg/dL, valorar la combinación desde el inicio.':'.');
+    if(R.cat>=2)act='CTEV y, simultáneamente, tratamiento de alta o muy alta intensidad. Es razonable iniciar con combinación oral (estatina + ezetimiba/ácido bempedoico). iPCSK9 si se necesita una reducción >60 % o cLDL >100 mg/dL con estatina de alta potencia (tabla 13).'+(R.cat===3?' En riesgo extremo, buscar además FRV no convencionales.':'');
+    let tb='';
+    if(ok(b)){
+      const rows=REGIMENS.map((r,i)=>({i,n:r[0],p:r[1],e:b*(1-r[1]/100)})).sort((a,c2)=>a.p-c2.p);
+      const firstHit=rows.find(r=>r.e<=R.goal&&r.p>0);
+      tb=`<div class="tall"><table><thead><tr><th>Pauta (tabla 11)</th><th style="text-align:right">Reducción</th><th style="text-align:right">cLDL esperado</th></tr></thead><tbody>${rows.map(r=>`<tr class="${r.i===S.reg?'cur':(r.e<=R.goal&&r.p>0?'hit':'')}"><td>${r.n}${r.i===S.reg?' · actual':''}${firstHit&&r.i===firstHit.i?' · <strong>mínima suficiente</strong>':''}</td><td class="n">${r.p} %</td><td class="n">${f(r.e)}</td></tr>`).join('')}</tbody></table></div>`;
+    }
+    h+=card('Objetivo y tratamiento hipolipemiante','Tablas 11 y 12',
+      `<div class="big">&lt;${t} <small>mg/dL de cLDL${R.cat>=1?' y descenso ≥50 %':''}</small></div>`+
+      kv([['c-no-HDL objetivo','<'+R.nhT+' mg/dL'],ok(R.ldl)?['cLDL actual ('+R.ldlSrc+')',f(R.ldl)+' mg/dL']:null,ok(b)&&S.reg>0?['cLDL basal estimado sin tratamiento',f(b)+' mg/dL']:null,ok(R.goal)?['Meta efectiva',f(R.goal)+' mg/dL']:null,ok(R.need)?['Reducción necesaria desde el basal',f(R.need*100)+' %']:null])+
+      (act?`<div class="note">${act}</div>`:'')+tb);
+  }
+  // CSC
+  const csc=v('csc');
+  if(ok(csc)){const t=csc===0?'Sin calcio (0)':csc<100?'Carga de placa ligera (1-99)':csc<300?'Carga moderada (100-299): reclasifica al alza':csc<1000?'Carga grave (300-999): equivale a prevención secundaria':'Carga muy grave (≥1.000)';
+    h+=card('Calcio score coronario','Tabla 4',`<div>${chip(csc>=300?'c2':csc>=100?'c1':csc>0?'cw':'c0',t)}</div><div class="note">CAD-RADS: P1 1-100 · P2 101-300 · P3 301-999 · P4 ≥1.000. Válido en varones >40 y mujeres >50 años con FRV; la monitorización bajo estatinas pierde utilidad.</div>`);}
+  $('r_global').innerHTML=h;
+}
+
+function renderRenal(S,R){
+  let h='';const E=R.eq;
+  if(Object.keys(E).length){
+    const area=ok(S.wt)&&ok(S.ht)?bsa(S.wt,S.ht):NaN;
+    const rows=Object.keys(EQN).filter(k=>ok(E[k])).map(k=>`<tr class="${k===R.eqUsed?'cur':''}"><td>${EQN[k]}${k===R.eqUsed?' · usada':''}</td><td class="n">${f(E[k])}</td><td class="n">${ok(area)?f(E[k]*area/1.73):'—'}</td></tr>`).join('');
+    h+=card('Filtrado glomerular estimado','KDIGO 2024',`<div class="big">${f(R.egfr)} <small>mL/min/1,73 m² · ${R.G}${R.Acat?' '+R.Acat:''}</small></div>
+      <div class="scroll"><table><thead><tr><th>Ecuación</th><th style="text-align:right">mL/min/1,73 m²</th><th style="text-align:right">mL/min (desindexado)</th></tr></thead><tbody>${rows}${ok(R.cg)?`<tr><td>Cockcroft-Gault (aclaramiento)</td><td class="n">—</td><td class="n">${f(R.cg)}</td></tr>`:''}</tbody></table></div>
+      ${ok(area)?`<div class="note">Superficie corporal (DuBois): ${f(area,2)} m². El FGe desindexado y Cockcroft-Gault sirven para ajustar fármacos.</div>`:''}
+      ${S.age<25&&ok(R.eq.ekfc)?'<div class="note">EKFC usa una Q de creatinina específica para la edad entre 18 y 25 años.</div>':''}`);
+  } else h+=card('Filtrado glomerular estimado','',`<div class="note">Introduce edad, sexo y creatinina (y cistatina C si la tienes).</div>`);
+  // Mapa KDIGO
+  if(R.G){const Gs=['G1','G2','G3a','G3b','G4','G5'],Ai=R.Acat?['A1','A2','A3'].indexOf(R.Acat):-1;
+    let g=`<div class="kdigo"><div></div><div class="h">A1 &lt;30</div><div class="h">A2 30-300</div><div class="h">A3 &gt;300</div>`;
+    Gs.forEach(G=>{g+=`<div class="h">${G}</div>`+KDIGO_MAP[G].map((k,i)=>`<div class="k${k} ${G===R.G&&i===Ai?'on':''}">${['Bajo','Moderado','Alto','Muy alto'][k]}</div>`).join('')});g+='</div>';
+    const ckdTxt=R.ckd==='grave'?chip('c2','ERC avanzada: riesgo vascular muy alto por sí misma'):R.ckd==='moderada'?chip('c1','ERC moderada: riesgo vascular alto'):(R.Acat&&R.Acat!=='A1'?chip('cw','Albuminuria: lesión de órgano diana'):chip('c0','Sin criterio de ERC de riesgo'));
+    h+=card('Pronóstico KDIGO y riesgo vascular','Tabla 7, nota c',g+`<div>${ckdTxt}</div>${!R.Acat?'<div class="note">Sin cociente albúmina/creatinina no se puede completar la clasificación.</div>':''}`);}
+  // KFRE
+  if(R.k4){const k=R.k8||R.k4;const bar=r=>`<div class="bar"><i style="width:${Math.min(100,r*100)}%"></i></div>`;
+    const tips=[];
+    if(k.y5>=0.03)tips.push('Riesgo a 5 años ≥3-5 %: derivar a nefrología (KDIGO 2024).');
+    if(k.y2>=0.10)tips.push('Riesgo a 2 años >10 %: atención multidisciplinar.');
+    if(k.y2>=0.40)tips.push('Riesgo a 2 años >40 %: planificar tratamiento renal sustitutivo y acceso vascular.');
+    h+=card('Riesgo de fallo renal (KFRE)','Tangri 2016',
+      `<div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))"><div><div class="lbl">2 años</div><div class="big">${pct(k.y2)}</div>${bar(k.y2)}</div><div><div class="lbl">5 años</div><div class="big">${pct(k.y5)}</div>${bar(k.y5)}</div></div>`+
+      kv([['4 variables · 2 / 5 años',pct(R.k4.y2)+' / '+pct(R.k4.y5)],R.k8?['8 variables · 2 / 5 años',pct(R.k8.y2)+' / '+pct(R.k8.y5)]:['8 variables','añade Ca, P, albúmina y HCO₃'],['Calibración',s('kfreReg')==='na'?'Norteamérica':'Fuera de Norteamérica']])+
+      tips.map(t=>`<div class="warn">${t}</div>`).join('')+
+      (R.egfr>=60?'<div class="warn">KFRE está validada para FGe &lt;60 mL/min/1,73 m²; con FGe mayor el resultado no es interpretable.</div>':'')+
+      '<div class="note">Variables: edad, sexo, FGe y CAC (mg/g); el modelo de 8 añade calcio, fósforo, albúmina y bicarbonato séricos.</div>');}
+  else h+=card('Riesgo de fallo renal (KFRE)','',`<div class="note">Requiere edad, sexo, FGe y cociente albúmina/creatinina.</div>`);
+  $('r_renal').innerHTML=h;
+}
+
+function renderLip(S,R){
+  let h='';const tg=S.tg;
+  const apob=v('apob'),apoa1=v('apoa1'),vldl=v('vldl');
+  const rem=ok(S.tc)&&ok(S.hdl)&&ok(R.ldl)?S.tc-S.hdl-R.ldl:NaN;R.rem=rem;R.apoR=ok(apob)&&ok(apoa1)?apob/apoa1:NaN;R.vldlTg=ok(vldl)&&ok(tg)?vldl/tg:NaN;
+  const w=[];
+  if(tg>=400)w.push('TG ≥400 mg/dL: Friedewald no es válida; usar cLDL directo.');
+  else if(tg>=175||R.fried<70)w.push('Con TG 175-400 mg/dL o cLDL <70 mg/dL, Friedewald puede errar >10 %; preferible Sampson-NIH o cLDL directo.');
+  if(tg>800)w.push('TG >800 mg/dL: Sampson-NIH tampoco es válida.');
+  h+=card('Perfil lipídico calculado','Anexo 5',kv([
+    ['c-no-HDL',ok(R.nonhdl)?f(R.nonhdl)+' mg/dL':'—'],['cLDL Friedewald',ok(R.fried)?f(R.fried)+' mg/dL':'—'],['cLDL Sampson-NIH',ok(R.samp)?f(R.samp)+' mg/dL':'—'],
+    ok(S.ldlD)?['cLDL directo',f(S.ldlD)+' mg/dL']:null,['Colesterol remanente',ok(rem)?f(rem)+' mg/dL':'—'],
+    ok(apob)&&ok(apoa1)?['Índice Apo B/Apo A1',f(apob/apoa1,2)+(apob/apoa1>0.82?' (>0,82)':'')]:null,
+    ok(vldl)&&ok(tg)?['cVLDL/TG',f(vldl/tg,2)+(vldl/tg>0.3?' (>0,3: disbetalipoproteinemia)':'')]:null,
+    ok(R.lpaMg)?['Lp(a)',f(R.lpaMg)+' mg/dL ≈ '+f(R.lpaNmol)+' nmol/L']:null])+w.map(x=>`<div class="warn">${x}</div>`).join('')+
+    '<div class="note">Martin-Hopkins requiere la tabla de 180 factores del laboratorio y no se incluye. La conversión de Lp(a) entre mg/dL y nmol/L es aproximada (tabla 8 usa ×2).</div>');
+  // Diagnósticos lipídicos
+  const dx=[];
+  if(ok(tg)){dx.push(tg<150?['Triglicéridos','Deseables (<150)']:tg<500?['Hipertrigliceridemia','Leve (150-499)']:tg<=1000?['Hipertrigliceridemia','Moderada (500-1.000)']:['Hipertrigliceridemia','Grave (>1.000): riesgo de pancreatitis']);}
+  if(tg>150&&S.hdl<(S.sex==='m'?40:45))dx.push(['Dislipemia aterogénica','TG >150 y cHDL bajo']);
+  if(R.lpaMg>=50)dx.push(['Hiperlipoproteinemia(a)','Lp(a) ≥50 mg/dL'+(R.lpaMg>180?'; >180 equivale a HFHe':'')]);
+  if(tg>=150&&R.ldl>=130&&apob<120)dx.push(['Sospecha de disbetalipoproteinemia','Hiperlipemia mixta con Apo B <120 mg/dL: solicitar genotipo Apo E']);
+  const ref=[];
+  if(S.tc>300)ref.push('CT >300');if(R.ldlBase>200)ref.push('cLDL >200');if(R.lpaMg>150)ref.push('Lp(a) >150 mg/dL');if(tg>1000)ref.push('TG >1.000');if(S.hdl<20)ref.push('cHDL <20');if(S.hdl>100)ref.push('cHDL >100');if(S.reg===0&&R.ldl<50)ref.push('cLDL <50 sin tratamiento');
+  R.lipDx=dx;R.lipRef=ref;
+  h+=card('Diagnósticos y derivación','Tablas 5 y 40',(dx.length?kv(dx):'<div class="note">Sin alteraciones destacables con los datos actuales.</div>')+
+    (ref.length?`<div class="warn">Criterio de derivación a Unidad de Lípidos de la SEA: ${ref.join(', ')}.</div>`:''));
+  // DLCN
+  const fam=Math.max(c('d_f1')?1:0,c('d_f2')?2:0),pers=Math.max(c('d_p1')?2:0,c('d_p2')?1:0),ex=Math.max(c('d_x1')?6:0,c('d_x2')?4:0);
+  const lb=R.ldlBase;const lp=!ok(lb)?0:lb>330?8:lb>=250?5:lb>=190?3:lb>=155?1:0;
+  const tot=fam+pers+ex+lp+(c('d_g')?8:0);
+  const dl=tot>8?['c2','HF definida']:tot>=6?['c1','HF probable']:tot>=3?['cw','HF posible']:['c0','HF improbable'];R.dlcn={tot,cls:dl[1]};
+  h+=card('Dutch Lipid Clinic Network','Anexo 6',`<div class="big">${tot} <small>puntos</small></div><div>${chip(dl[0],dl[1])}</div>`+kv([['Historia familiar',fam],['Historia personal',pers],['Exploración física',ex],['cLDL basal '+(ok(lb)?f(lb)+' mg/dL':'—'),lp],['Genética',c('d_g')?8:0]])+'<div class="note">cLDL: >330 → 8; 250-329 → 5; 190-249 → 3; 155-189 → 1. Confirmar con estudio genético.</div>');
+  // iPCSK9
+  const ps=s('pcsk');
+  if(ps){const[th,name]=ps.split('|');const ld=R.ldl;
+    const yes=ok(ld)&&ld>+th;R.pcsk={name,th,yes,ld};
+    h+=card('Criterio SEA para iPCSK9','Tabla 13',`<div>${chip(ok(ld)?(yes?'c1':'c0'):'cn',ok(ld)?(yes?'Cumple el criterio de cLDL':'No alcanza el umbral'):'Falta cLDL')}</div>`+kv([['Situación',name],['Umbral de cLDL con tratamiento','>'+th+' mg/dL'],['cLDL actual',ok(ld)?f(ld)+' mg/dL':'—'],['Tratamiento actual',REGIMENS[S.reg][0]]])+'<div class="note">El cLDL de referencia es el obtenido con estatina a la dosis máxima tolerada, con o sin ezetimiba.</div>');}
+  $('r_lip').innerHTML=h;
+}
+
+function bpCat(sbp,dbp){const lv=(x,a)=>{for(let i=a.length-1;i>=0;i--)if(x>=a[i][0])return a[i][1];return 0};
+  const s=lv(sbp,[[120,1],[130,2],[140,3],[160,4],[180,5]]),d=lv(dbp,[[80,1],[85,2],[90,3],[100,4],[110,5]]);const k=Math.max(s,d);
+  return {k,n:['Óptima','Normal','Normal-alta','HTA grado 1','HTA grado 2','HTA grado 3'][k],isol:sbp>=140&&dbp<90};}
+function renderMet(S,R){
+  let h='';
+  if(ok(S.sbp)&&ok(S.dbp)){const b=bpCat(S.sbp,S.dbp);
+    const lodAny=R.lod.length>0;const stage=(R.cat!=null&&(c('e_cor')||c('e_stroke')||c('e_pad')||c('e_aaa')))||(R.egfr<30)?3:(lodAny||S.dm||(R.egfr<60))?2:1;
+    R.bpc=b;R.htaStage=b.k>=3?stage:null;
+    const rows=[['Categoría (tabla 14)',b.n+(b.isol?' · sistólica aislada':'')],b.k>=3?['Estadio de la HTA',stage]:null,['Presión de pulso',f(S.sbp-S.dbp)+' mmHg']];
+    const sbpSt=v('sbpSt'),dbpSt=v('dbpSt');
+    if(ok(sbpSt)||ok(dbpSt)){const oh=(S.sbp-sbpSt>=20)||(S.dbp-dbpSt>=10);R.oh=oh;rows.push(['Hipotensión ortostática',oh?'Sí (caída ≥20/10)':'No']);}
+    const ad=v('armDiff');if(ok(ad))rows.push(['Diferencia entre brazos',ad>10?f(ad)+' mmHg: mayor riesgo de EVA':f(ad)+' mmHg']);
+    // MAPA
+    const m24s=v('m24s'),m24d=v('m24d'),mDs=v('mDs'),mDd=v('mDd'),mNs=v('mNs'),mNd=v('mNd');
+    let mapa='';
+    if(ok(m24s)||ok(mDs)||ok(mNs)){const amb=(m24s>=130||m24d>=80)||(mDs>=135||mDd>=85)||(mNs>=120||mNd>=70);
+      const off=S.sbp>=140||S.dbp>=90;
+      const ph=off&&amb?'HTA establecida':off&&!amb?'HTA de bata blanca':!off&&amb?'HTA enmascarada':'Normotensión';R.mapaPh=ph;R.mapaNoct=ok(mNs)?(mNs>=120||mNd>=70):null;R.dip=ok(mDs)&&ok(mNs)?(1-mNs/mDs)*100:NaN;
+      mapa=kv([['Fenotipo MAPA',ph],ok(mNs)?['HTA nocturna',(mNs>=120||mNd>=70)?'Sí (≥120/70)':'No']:null,ok(mDs)&&ok(mNs)?['Descenso nocturno PAS',f((1-mNs/mDs)*100)+' %']:null]);
+      const nd=v('nDrugs');if(nd>=3&&off){mapa+=`<div class="warn">${amb?(nd>=5?'HTA refractaria (≥5 fármacos, confirmada por MAPA): derivar a unidad especializada.':'HTA resistente verdadera: descartar HTA secundaria; si FGe ≥45 y K normal, añadir espironolactona 25 mg tras determinar aldosterona y renina.'):'HTA pseudorresistente por efecto de bata blanca.'}</div>`;}
+    }
+    const tgt=R.fr.state===2?'Paciente frágil: individualizar el objetivo y vigilar la hipotensión ortostática; no bajar de 120/70':S.age>=80?'Individualizar en mayores frágiles; no bajar de 120/70':'PAS <130 (no <120) y PAD 70-79 mmHg si se tolera';
+    h+=card('Presión arterial','Tablas 14 y 15',`<div class="big">${f(S.sbp)}/${f(S.dbp)} <small>mmHg</small></div><div>${chip(b.k>=5?'c2':b.k>=3?'c1':b.k===2?'cw':'c0',b.n)}</div>`+kv(rows)+mapa+`<div class="note">Objetivo: ${tgt}. Fármaco desde el inicio en grados 2-3, y en grado 1 con riesgo alto o LOD. ${b.k>=5?'Con PAS ≥180 o PAD ≥110 es imprescindible la fundoscopia.':''}</div>`);}
+  // Glucemia
+  const glu=v('glu'),og=v('ogtt'),a1c=S.a1c;
+  if(ok(glu)||ok(og)||ok(a1c)){
+    const cl=x=>x===2?'Diabetes':x===1?'Prediabetes':'Normal';
+    const rows=[ok(a1c)?['HbA1c',f(a1c,1)+' % = '+f(a1cToMmol(a1c))+' mmol/mol · '+cl(a1c>=6.5?2:a1c>=5.7?1:0)]:null,ok(glu)?['Glucemia en ayunas',f(glu)+' mg/dL · '+cl(glu>=126?2:glu>=100?1:0)]:null,ok(og)?['SOG 2 h',f(og)+' mg/dL · '+cl(og>=200?2:og>=140?1:0)]:null];
+    R.glyRows=rows.filter(Boolean);let msg='';
+    if(S.dm)msg=`${R.fr.state===2?'Fragilidad: objetivo de HbA1c 7-8,5 % y evitar hipoglucemias (iDPP-4 preferible a sulfonilureas, figura 8B). ':''}Objetivo general HbA1c <7 % (6-7 % en jóvenes sin complicaciones). Inicio: ${a1c<7.5?'monoterapia':a1c<=9?'doble terapia':'valorar insulinización si hay clínica cardinal'}. Con EVA, muy alto riesgo, IC o enfermedad renal diabética: iSGLT2 o arGLP-1 con beneficio demostrado.`;
+    else if(R.dmSusp)msg='Valores en rango de diabetes: confirmar con una segunda prueba patológica.';
+    else if(R.prediab)msg='Prediabetes: dieta mediterránea y actividad física. Metformina si IMC >35, DM gestacional previa, o glucemia ≥110 con HbA1c ≥6,1 %.';
+    h+=card('Metabolismo glucídico','Tabla 16',kv(rows)+(msg?`<div class="note">${msg}</div>`:''));}
+  // Obesidad
+  if(ok(R.bmi)){const b=R.bmi;const n=b<18.5?'Peso insuficiente':b<25?'Normopeso':b<27?'Sobrepeso grado 1':b<30?'Sobrepeso grado 2':b<35?'Obesidad grado 1':b<40?'Obesidad grado 2':b<50?'Obesidad grado 3 (mórbida)':'Obesidad grado 4 (extrema)';
+    R.bmiCls=n;const rows=[['Clasificación (tabla 27)',n]];
+    if(b>=25&&ok(S.wt))rows.push(['Pérdida objetivo 7-10 %',f(S.wt*0.07,1)+'-'+f(S.wt*0.10,1)+' kg']);
+    const wst=v('waist');if(ok(wst))rows.push(['Perímetro abdominal',f(wst)+' cm'+(wst>=(S.sex==='m'?94:80)?' (elevado)':'')]);
+    let extra='';if(b>=40||(b>=35&&(S.dm||R.hta||R.mods.includes('SAHOS'))))extra='<div class="note">Cumple el criterio de IMC para valorar cirugía bariátrica (tabla 30), tras fracaso del tratamiento médico.</div>';
+    if(b>=30)extra+='<div class="note">Fármacos: semaglutida 2,4 mg/sem (−14,9 %), tirzepatida hasta 15 mg/sem (−20 %), liraglutida 3 mg/día (−8 %), orlistat.</div>';
+    h+=card('Índice de masa corporal','Tabla 27',`<div class="big">${f(b,1)} <small>kg/m²</small></div>`+kv(rows)+extra);}
+  // SM
+  h+=card('Síndrome metabólico','Tabla 24',`<div>${chip(R.sm?'c1':R.smc.length?'cw':'c0',R.sm?'Cumple criterios ('+R.smc.length+'/5)':R.smc.length+'/5 criterios')}</div>`+(R.smc.length?`<ul class="reasons">${R.smc.map(x=>`<li>${x}</li>`).join('')}</ul>`:'')+'<div class="note">Se requieren 3 de 5. No es equivalente coronario, pero modula el riesgo (tabla 7).</div>');
+  $('r_met').innerHTML=h;
+}
+
+function renderLife(S,R){
+  let h='';
+  const cpd=v('cpd'),yrs=v('yrs');
+  const fq=['fa1','fa2','fa3','fa4','fa5','fa6','fa7'].map(id=>s(id)===''?null:+s(id));
+  const fdone=fq.every(x=>x!==null);const fsum=fq.reduce((a,b)=>a+(b||0),0);
+  const cpdPts=ok(cpd)?(cpd<=10?0:cpd<=20?1:cpd<=30?2:3):fq[3];
+  const ttfc=fq[0];
+  const hsi=cpdPts!=null&&ttfc!=null?cpdPts+ttfc:null;R.fag=fdone?fsum:null;R.hsi=hsi;R.packs=ok(cpd)&&ok(yrs)?cpd*yrs/20:NaN;
+  const rows=[ok(cpd)&&ok(yrs)?['Índice paquetes-año',f(cpd*yrs/20,1)]:null,
+    fdone?['Test de Fagerström',fsum+' / 10']:['Test de Fagerström','completa las 7 preguntas'],
+    hsi!=null?['Índice de gravedad (HSI)',hsi+' / 6 · dependencia '+(hsi<=2?'baja':hsi<=4?'moderada':'alta')]:null];
+  h+=card('Tabaquismo','Anexos 7 y 8',kv(rows)+(S.smk===2?'<div class="note">Aconsejar el abandono en cada visita. Vareniclina, citisina o bupropión, con o sin sustitutos de nicotina; parches si fuma ≥10 cigarrillos/día. Combinar con tratamiento conductual.</div>':''));
+  // Alcohol
+  const be=v('beer')||0,wi=v('wine')||0,sp=v('spirit')||0;
+  if(be||wi||sp){const g=(be*6+wi*12+sp*40)*0.8/100;const lim=S.sex==='f'?15:30;R.alc={g,lim};
+    h+=card('Alcohol','(mL × graduación × 0,8) / 100',`<div class="big">${f(g)} <small>g/semana</small></div>`+kv([['Media diaria',f(g/7,1)+' g/día'],['Límite recomendado',lim+' g/día']])+(g/7>lim?'<div class="warn">Supera el límite recomendado.</div>':''));}
+  // MEDAS
+  const md=MEDAS.reduce((a,_,i)=>a+(c('md'+i)?1:0),0);R.medas=md;
+  if(md)h+=card('MEDAS','Anexo 3',`<div class="big">${md} <small>/ 14</small></div><div>${chip(md>=9?'c0':'cw',md>=9?'Buena adherencia':'Baja adherencia')}</div>`);
+  // IPAQ
+  const vd=v('vd'),vm=v('vm'),mdd=v('md_'),mm=v('mm'),wd=v('wd'),wm=v('wm');
+  if([vd,vm,mdd,mm,wd,wm].some(ok)){const z=x=>ok(x)?x:0;
+    const W=3.3*z(wm)*z(wd),M=4*z(mm)*z(mdd),V=8*z(vm)*z(vd),T=W+M+V;const days=z(vd)+z(mdd)+z(wd);
+    let lvl='Bajo o inactivo';
+    if((z(vd)>=3&&T>=1500)||(days>=7&&T>=3000))lvl='Alto';
+    else if((z(vd)>=3&&z(vm)>=20)||(z(mdd)+z(wd)>=5&&Math.max(z(mm),z(wm))>=30)||(days>=5&&T>=600))lvl='Moderado';
+    R.ipaq={T,W,M,V,lvl};
+    h+=card('IPAQ','Anexo 4',`<div class="big">${f(T)} <small>MET-min/semana</small></div><div>${chip(lvl==='Alto'?'c0':lvl==='Moderado'?'cw':'c1','Nivel '+lvl.toLowerCase())}</div>`+kv([['Caminar',f(W)],['Moderada',f(M)],['Vigorosa',f(V)],ok(v('sit'))?['Sentado',f(v('sit'),1)+' h/día']:null]));}
+  $('r_life').innerHTML=h;
+}
+
+function renderFA(S,R){
+  const A=S.age;let pts=0;const it=[];
+  if(c('c_ic')){pts+=1;it.push('IC +1');}
+  if(R.hta){pts+=1;it.push('HTA +1');}
+  if(A>=75){pts+=2;it.push('Edad ≥75 +2');}else if(A>=65){pts+=1;it.push('Edad 65-74 +1');}
+  if(S.dm){pts+=1;it.push('DM +1');}
+  if(c('c_stroke')||c('e_stroke')){pts+=2;it.push('Ictus/AIT/embolia +2');}
+  if(c('c_vasc')||c('e_cor')||c('e_pad')){pts+=1;it.push('Enfermedad vascular +1');}
+  $('chaAuto').innerHTML='Edad, HTA, DM, ictus y enfermedad vascular se toman de las demás pestañas.';
+  let rec=c('c_hcm')?'Anticoagulación indicada con independencia de la puntuación (miocardiopatía hipertrófica o amiloidosis).':pts>=2?'Riesgo alto: anticoagulación oral indicada (clase I).':pts===1?'Riesgo moderado: considerar anticoagulación (clase IIa).':'Riesgo bajo: no se recomienda anticoagulación.';
+  R.cha={pts,rec};
+  let h=card('CHA₂DS₂-VA','Tabla 33',`<div class="big">${pts} <small>/ 9</small></div><div>${chip(pts>=2||c('c_hcm')?'c2':pts===1?'c1':'c0',rec.split(':')[0])}</div><div class="note">${rec}</div>`+(it.length?`<div class="note">${it.join(' · ')}</div>`:'')+(S.sbp>160?'<div class="warn">PAS >160 mmHg: mejorar el control de la PA antes de iniciar la anticoagulación.</div>':''));
+  // ACOD
+  if(c('mech')){h+=card('Anticoagulante','Tabla 35','<div class="warn">ACOD contraindicados: usar antagonistas de la vitamina K (INR 2-3, TTR >65 %).</div>');}
+  else{const cg=R.cg,wt=S.wt,crm=R.cr;
+    if(ok(cg)){
+      const apiC=[A>=80,wt<=60,crm>=1.53].filter(Boolean).length;
+      const rows=[];
+      rows.push(['Apixabán',cg<15?'CrCl <15: AVK o apixabán (guías americanas)':apiC>=2?'2,5 mg/12 h':'5 mg/12 h']);
+      rows.push(['Dabigatrán',cg<30?'No recomendado (CrCl <30)':(A>=80||c('verap'))?'110 mg/12 h':'150 mg/12 h']);
+      rows.push(['Edoxabán',cg<15?'No recomendado (CrCl <15)':(cg<=50||wt<=60||c('pgp'))?'30 mg/día':'60 mg/día']);
+      rows.push(['Rivaroxabán',cg<15?'No recomendado (CrCl <15)':cg<50?'15 mg/día':'20 mg/día']);
+      R.doac=rows;
+      h+=card('Dosis de ACOD en FA','Tabla 35',kv([['Aclaramiento Cockcroft-Gault',f(cg)+' mL/min']])+`<div class="scroll"><table><tbody>${rows.map(r=>`<tr><td>${r[0]}</td><td class="n">${r[1]}</td></tr>`).join('')}</tbody></table></div><div class="note">Apixabán: reducir con ≥2 de edad ≥80, peso ≤60 kg, creatinina ≥1,53 mg/dL (135 µmol/L).</div>`);
+    } else h+=card('Dosis de ACOD en FA','Tabla 35','<div class="note">Necesita edad, sexo, peso y creatinina.</div>');}
+  $('r_fa').innerHTML=h;
+}
+
+function renderQ(S,R){
+  let h='';
+  if(ok(R.itbMin)){const cl=x=>x<0.9?'Patológico (<0,9): EAP':x>=1.4?'≥1,4: calcificación arterial':'Normal';
+    h+=card('Índice tobillo/brazo','',`<div class="big">${f(R.itbMin,2)} <small>el más bajo</small></div>`+kv([ok(R.itbR)?['Derecho',f(R.itbR,2)+' · '+cl(R.itbR)]:null,ok(R.itbL)?['Izquierdo',f(R.itbL,2)+' · '+cl(R.itbL)]:null])+(ok(v('itb'))?'':'<div class="note">Este valor se usa en la clasificación global.</div>'));}
+  // Edimburgo
+  const e=['ed1','ed2','ed3','ed4'].map(s),loc=s('ed5');
+  if(e[0]!==''){let r;
+    if(e[0]==='0'||e[1]==='1'||e[2]==='0'||e[3]==='0'||loc==='other')r=['c0','Sin claudicación vascular intermitente'];
+    else if(e.every(x=>x!=='')&&loc){r=loc==='calf'?['c2','Claudicación vascular intermitente definida']:['c1','Claudicación vascular intermitente atípica'];}
+    else r=['cn','Completa el cuestionario'];
+    R.edin=r[1];
+    h+=card('Cuestionario de Edimburgo','Anexo 1',`<div>${chip(r[0],r[1])}</div>`);}
+  // SQUED
+  const q=['sq1','sq2','sq3'].map(s);
+  if(q.every(x=>x!=='')){const t=q.reduce((a,b)=>a+ +b,0);R.squed=t;h+=card('SQUED','Anexo 2',`<div class="big">${t} <small>/ 15</small></div><div>${chip(t<=12?'c1':'c0',t<=12?'Sugiere disfunción eréctil':'Sin disfunción eréctil')}</div><div class="note">La disfunción eréctil puede preceder a la enfermedad coronaria.</div>`);}
+  if(!h)h=card('Resultados','','<div class="note">Completa cualquiera de los cuestionarios para ver su resultado.</div>');
+  $('r_q').innerHTML=h;
+}
+
+
+function renderFrag(S,R){const F=R.fr;let h='';
+  const st=F.state;
+  const stTxt=st===2?['c2','Frágil']:st===1?['cw','Prefrágil']:st===0?['c0','Robusto']:['cn','Sin evaluar'];
+  let imp='';
+  if(st===2)imp=`<ul class="reasons"><li>Diabetes: objetivo de HbA1c 7-8,5 % y evitar hipoglucemias; iDPP-4 preferible en fragilidad (figura 8B).</li><li>PA: individualizar el objetivo; medir la PA en bipedestación en cada visita (tabla 3).</li><li>Anticoagulación: la fragilidad no la contraindica; ajustar el fármaco y la dosis a edad, peso y función renal.</li><li>Hipolipemiantes y polifarmacia: valorar expectativa de vida, interacciones y adherencia antes de intensificar.</li><li>Prescribir ejercicio multicomponente (resistencia, equilibrio y flexibilidad, tabla 20) y revisar la nutrición.</li></ul>`;
+  h+=card('Situación de fragilidad','Síntesis',`<div class="big">${stTxt[1]}</div><div>${chip(stTxt[0],stTxt[1])}</div>`+(F.flags.length?`<div class="note">Criterios de fragilidad: ${F.flags.join(', ')}.</div>`:'')+(F.pre.length&&!F.flags.length?`<div class="note">Criterios de prefragilidad: ${F.pre.join(', ')}.</div>`:'')+imp+(ok(S.age)&&S.age>=70&&st==null?'<div class="warn">Paciente ≥70 años sin cribado de fragilidad: se recomienda FRAIL, CFS o SPPB.</div>':''));
+  if(F.cfs){const d=F.cfs<=3?'No frágil':F.cfs===4?'Vulnerable / fragilidad muy leve':F.cfs<=8?'Frágil':'Enfermo terminal (expectativa <6 meses)';
+    h+=card('Escala Clínica de Fragilidad','CFS 1-9',`<div class="big">${F.cfs} <small>/ 9</small></div><div>${chip(F.cfs>=5?'c2':F.cfs===4?'cw':'c0',d)}</div>`);}
+  if(F.state!=null){const n=F.frailN;h+=card('Escala FRAIL','0-5',`<div class="big">${n} <small>/ 5</small></div><div>${chip(n>=3?'c2':n>=1?'cw':'c0',n>=3?'Frágil (3-5)':n>=1?'Prefrágil (1-2)':'Robusto (0)')}</div>`);}
+  if(F.friedAny||F.fried.length){const n=F.fried.length;h+=card('Fenotipo de Fried','0-5 criterios',`<div class="big">${n} <small>/ 5</small></div><div>${chip(n>=3?'c2':n>=1?'cw':'c0',n>=3?'Frágil (≥3)':n>=1?'Prefrágil (1-2)':'Robusto (0)')}</div>`+kv([n?['Criterios',F.fried.join(', ')]:null,ok(v('grip'))?['Prensión / punto de corte',f(v('grip'),1)+' / ≤'+f(F.gripCut,1)+' kg']:null,ok(F.speed)?['Velocidad de marcha',f(F.speed,2)+' m/s']:null]));}
+  const P=F.sppbParts;if(P.bal!=null||P.gp!=null||P.cp!=null){
+    const t=F.sppb;const cl=t==null?'':t<=3?'Limitación grave':t<=6?'Limitación moderada':t<=9?'Limitación leve':'Limitación mínima';
+    h+=card('SPPB','0-12',`<div class="big">${t!=null?t:'—'} <small>/ 12</small></div>${t!=null?`<div>${chip(t<10?'c2':'c0',t<10?'Frágil (<10) · '+cl:cl)}</div>`:''}`+kv([['Equilibrio',P.bal!=null?P.bal+' / 4':'—'],['Marcha 4 m',P.gp!=null?P.gp+' / 4':'—'],['Levantarse de la silla',P.cp!=null?P.cp+' / 4':'—'],ok(F.speed)?['Velocidad de marcha',f(F.speed,2)+' m/s'+(F.speed<0.8?' (<0,8: riesgo de eventos adversos)':'')]:null])+'<div class="note">Marcha: &lt;4,82 s = 4; 4,82-6,20 = 3; 6,21-8,70 = 2; &gt;8,70 = 1. Silla: ≤11,19 s = 4; 11,20-13,69 = 3; 13,70-16,69 = 2; 16,70-60 = 1.</div>');}
+  if(F.barthelN){const b=F.barthel;const cl=b===100?'Independiente':b>=60?'Dependencia leve':b>=40?'Dependencia moderada':b>=20?'Dependencia grave':'Dependencia total';
+    h+=card('Índice de Barthel','0-100',`<div class="big">${b} <small>/ 100</small></div>`+(F.barthelDone?`<div>${chip(b===100?'c0':b>=60?'cw':b>=40?'c1':'c2',cl)}</div>`:`<div class="note">Faltan ${10-F.barthelN} ítems para interpretar el total.</div>`));}
+  $('r_frag').innerHTML=h;}
+
+// ===== Texto completo: datos y resultados =====
+const norm=t=>t.replace(/\s+/g,' ').trim();
+function nodeLines(el,out,ind,opts){
+  if(el.nodeType===3){const t=norm(el.textContent);if(t)out.push(ind+t);return;}
+  if(el.nodeType!==1)return;const cl=el.classList;
+  if(cl.contains('ladder'))return;
+  if(cl.contains('kdigo')){const on=el.querySelector('.on');if(on){const cells=[...el.children];const i=cells.indexOf(on);const row=Math.floor(i/4),col=i%4;out.push(ind+'Riesgo pronóstico KDIGO: '+norm(on.textContent)+' ('+norm(cells[row*4].textContent)+' '+['','A1','A2','A3'][col]+')');}return;}
+  if(cl.contains('kv')){const k=[...el.children];for(let i=0;i<k.length;i+=2)out.push(ind+norm(k[i].textContent)+': '+norm(k[i+1]?k[i+1].textContent:''));return;}
+  if(el.tagName==='UL'){el.querySelectorAll('li').forEach(li=>out.push(ind+'- '+norm(li.textContent)));return;}
+  if(el.tagName==='TABLE'){if(!opts.tab)return;const tall=!!el.closest('.tall');let hits=0;
+    el.querySelectorAll('tbody tr').forEach(tr=>{if(tall){const hit=tr.classList.contains('hit');if(!(tr.classList.contains('cur')||(hit&&hits<5)))return;if(hit)hits++;}
+      out.push(ind+'  · '+[...tr.children].map(td=>norm(td.textContent)).join(' | '));});
+    if(tall)out.push(ind+'  (se muestran la pauta actual y las primeras pautas que alcanzan la meta)');return;}
+  if(cl.contains('warn')){out.push(ind+'AVISO: '+norm(el.textContent));return;}
+  if(cl.contains('big')||cl.contains('note')||cl.contains('chip')){const t=norm(el.textContent);if(t)out.push(ind+t);return;}
+  if(cl.contains('lbl')){out.push(ind+norm(el.textContent)+':');return;}
+  if(el.firstElementChild&&el.firstElementChild.classList.contains('lbl')&&el.querySelector('.big')){out.push(ind+norm(el.firstElementChild.textContent)+': '+norm(el.querySelector('.big').textContent));return;}
+  [...el.childNodes].forEach(n=>nodeLines(n,out,ind,opts));}
+function cardToText(sec,opts){const h2=sec.querySelector('h2');const ref=h2.querySelector('.ref');
+  const title=[...h2.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim();
+  const body=[];[...sec.children].forEach(ch=>{if(ch!==h2)nodeLines(ch,body,'  ',opts)});
+  // dedupe consecutive duplicates (p. ej. cifra grande y chip con el mismo texto)
+  const b2=body.filter((l,i)=>i===0||l!==body[i-1]);
+  if(b2.length===1&&/^\s*(Introduce|Necesita|Requiere|Completa)/.test(b2[0]))return '';
+  return '■ '+title+(ref&&norm(ref.textContent)?' ['+norm(ref.textContent)+']':'')+'\n'+b2.join('\n');}
+function inputVal(f){const e=$(f.id);if(!e)return null;
+  if(f.t==='c')return e.checked?'Sí':null;
+  if(f.t==='s'){if(e.value==='')return null;return norm(e.selectedOptions[0].textContent);}
+  if(e.value==='')return null;const u=f.uo?$(f.uid).selectedOptions[0].textContent:(f.u||'');return e.value.replace('.',',')+(u?' '+u:'');}
+function fullText(){const opts={tab:c('o_tab')};const L=[];const now=new Date();
+  const line='─'.repeat(60);
+  L.push('EVALUACIÓN DEL RIESGO VASCULAR · Estándares SEA 2026');
+  L.push('Fecha: '+now.toLocaleDateString('es-ES')+' '+now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}));
+  L.push(line);
+  // Resumen
+  L.push('RESUMEN');
+  document.querySelectorAll('#summary .sum').forEach(su=>{const k=norm(su.querySelector('.k').textContent),vv=norm(su.querySelector('.v').textContent),ss=norm(su.querySelector('.s').textContent);if(vv&&vv!=='—')L.push('  '+k+': '+vv+(ss?' ('+ss+')':''));});
+  const tabName=t=>t==='pac'?'Paciente':(TABS.find(x=>x[0]===t)||[0,t])[1];
+  if(c('o_in')){L.push('',line,'DATOS INTRODUCIDOS');let lastTab=null,lastSec=null;
+    REG.forEach(({f,sec,tab})=>{const val=inputVal(f);if(val==null)return;
+      if(tab!==lastTab){L.push('','['+tabName(tab).toUpperCase()+']');lastTab=tab;lastSec=null;}
+      if(sec!==lastSec&&sec&&tab!=='pac'){L.push('  '+sec);lastSec=sec;}
+      L.push((tab==='pac'?'  ':'    ')+norm(f.l)+': '+val);});}
+  if(c('o_res')){L.push('',line,'RESULTADOS, ESCALAS Y ESTRATIFICACIÓN');
+    TABS.forEach(([t,n])=>{if(t==='rep')return;const col=$('r_'+t);if(!col)return;
+      const blocks=[...col.querySelectorAll(':scope > section.res')].map(sc=>cardToText(sc,opts)).filter(Boolean);
+      if(blocks.length){L.push('','['+n.toUpperCase()+']');blocks.forEach(b=>L.push(b));}});}
+  L.push('',line,'Herramienta de apoyo a la decisión basada en los Estándares SEA 2026 (Clín Investig Arterioscler 2026;38:500889). No sustituye el juicio clínico.');
+  return L.join('\n');}
+
+// ===== Informe en tres párrafos =====
+function narrative(){const S=window.__S,R=window.__R,F=R.fr;const now=new Date();
+  const out=['EVALUACIÓN DEL RIESGO VASCULAR · Estándares SEA 2026','Fecha: '+now.toLocaleDateString('es-ES')+' '+now.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'}),''];
+  const has=x=>x!=null&&x!==''&&!(typeof x==='number'&&!isFinite(x));
+  const lc=t=>/^(Lp\(a\)|Apo|SCORE)/.test(t)?t:(t.length>1&&t.charAt(1)===t.charAt(1).toLowerCase()&&t.charAt(1)!==t.charAt(1).toUpperCase())?t.charAt(0).toLowerCase()+t.slice(1):t;const lcl=arr=>arr.map(lc).join(', ');
+  // 1. Datos introducidos
+  if(c('o_in')){const groups=[];let cur=null;
+    REG.forEach(({f,sec,tab})=>{const val=inputVal(f);if(val==null)return;const key=tab+'|'+sec;
+      if(!cur||cur.key!==key){cur={key,name:sec||'Paciente',items:[]};groups.push(cur);}
+      cur.items.push(f.t==='c'?norm(f.l):norm(f.l)+': '+lc(val));});
+    out.push('1. DATOS INTRODUCIDOS');
+    out.push(groups.length?groups.map(g=>g.name+' — '+g.items.join('; ')+'.').join(' '):'No se han introducido datos.');out.push('');}
+  if(c('o_res')){
+  // 2. Valores calculados
+  const V=[];const add=(l,x)=>{if(has(x))V.push(l+': '+x);};
+  add('Índice de masa corporal (peso/talla²)',ok(R.bmi)?f(R.bmi,1)+' kg/m²':null);
+  if(ok(S.wt)&&ok(S.ht))add('Superficie corporal (DuBois)',f(bsa(S.wt,S.ht),2)+' m²');
+  add('Colesterol no HDL (CT − cHDL)',ok(R.nonhdl)?f(R.nonhdl)+' mg/dL ('+f(R.nonhdl/CHOL,1)+' mmol/L)':null);
+  add('cLDL por Friedewald',ok(R.fried)?f(R.fried)+' mg/dL':null);
+  add('cLDL por Sampson-NIH',ok(R.samp)?f(R.samp)+' mg/dL':null);
+  add('cLDL utilizado en los cálculos',ok(R.ldl)?f(R.ldl)+' mg/dL ('+R.ldlSrc+')':null);
+  add('Colesterol remanente (CT − cHDL − cLDL)',ok(R.rem)?f(R.rem)+' mg/dL':null);
+  add('Índice Apo B/Apo A1',ok(R.apoR)?f(R.apoR,2):null);
+  add('Cociente cVLDL/TG',ok(R.vldlTg)?f(R.vldlTg,2):null);
+  add('Lp(a) en unidades alternativas',ok(R.lpaMg)?f(R.lpaMg)+' mg/dL ≈ '+f(R.lpaNmol)+' nmol/L':null);
+  add('Riesgo CV a 10 años ('+(R.model||'SCORE2')+')',ok(R.score)?pct(R.score):null);
+  if(R.lpaC>1)add('Coeficiente de corrección por Lp(a) (tabla 8)','× '+f(R.lpaC,2));
+  if(R.lpaC>1)add('Riesgo CV a 10 años ajustado por Lp(a)',ok(R.scoreAdj)?pct(R.scoreAdj):null);
+  add('Riesgo CV a 10 años (SCORE2-Diabetes)',ok(R.scoreDM)?pct(R.scoreDM):null);
+  if(R.vage){add('Edad vascular (SCORE2)',f(R.vage.v)+' años');add('Velocidad de envejecimiento vascular (edad vascular/edad)',f(R.vage.v/S.age,2));}
+  if(S.reg>0)add('cLDL basal estimado sin tratamiento',ok(R.ldlBase)?f(R.ldlBase)+' mg/dL':null);
+  add('Meta efectiva de cLDL',ok(R.goal)?f(R.goal)+' mg/dL':null);
+  add('Reducción de cLDL necesaria desde el basal',ok(R.need)?f(R.need*100)+' %':null);
+  Object.keys(EQN).forEach(k=>add('FGe '+EQN[k],ok(R.eq[k])?f(R.eq[k])+' mL/min/1,73 m²':null));
+  add('Aclaramiento de creatinina (Cockcroft-Gault)',ok(R.cg)?f(R.cg)+' mL/min':null);
+  add('Cociente albúmina/creatinina en mg/g',ok(R.acr)?f(R.acr)+' mg/g':null);
+  if(R.k4){add('KFRE 4 variables a 2 años',pct(R.k4.y2));add('KFRE 4 variables a 5 años',pct(R.k4.y5));}
+  if(R.k8){add('KFRE 8 variables a 2 años',pct(R.k8.y2));add('KFRE 8 variables a 5 años',pct(R.k8.y5));}
+  add('Presión de pulso',ok(S.sbp)&&ok(S.dbp)?f(S.sbp-S.dbp)+' mmHg':null);
+  add('Descenso nocturno de la PAS (MAPA)',ok(R.dip)?f(R.dip)+' %':null);
+  add('HbA1c en unidades IFCC',ok(S.a1c)?f(a1cToMmol(S.a1c))+' mmol/mol':null);
+  add('Años de evolución de la diabetes',S.dm&&ok(R.dmYears)?f(R.dmYears)+' años':null);
+  add('Índice paquetes-año',ok(R.packs)?f(R.packs,1):null);
+  if(R.alc){add('Consumo de alcohol semanal',f(R.alc.g)+' g/semana');add('Consumo de alcohol diario medio',f(R.alc.g/7,1)+' g/día');}
+  if(R.ipaq)add('Gasto en actividad física (IPAQ)',f(R.ipaq.T)+' MET-min/semana (caminar '+f(R.ipaq.W)+', moderada '+f(R.ipaq.M)+', vigorosa '+f(R.ipaq.V)+')');
+  add('Índice tobillo/brazo derecho',ok(R.itbR)?f(R.itbR,2):null);
+  add('Índice tobillo/brazo izquierdo',ok(R.itbL)?f(R.itbL,2):null);
+  add('Velocidad de marcha (4 m)',ok(F.speed)?f(F.speed,2)+' m/s':null);
+  if(ok(v('grip')))add('Punto de corte de debilidad de Fried para su sexo e IMC','≤'+f(F.gripCut,1)+' kg');
+  out.push('2. VALORES CALCULADOS');out.push(V.length?V.join('; ')+'.':'No hay datos suficientes para calcular valores.');out.push('');
+  // 3. Resultados de escalas, cuestionarios y estratificación
+  const T=[];const tadd=(l,x)=>{if(has(x))T.push(l+': '+x);};
+  if(R.cat!=null)tadd('Riesgo vascular global (tabla 7)',CATN[R.cat].toLowerCase()+(R.why.length?', por '+R.why.map(lc).join(' / '):''));
+  R.notes.forEach(n=>T.push('Observación sobre el riesgo global: '+lc(n.replace(/\.$/,''))));
+  if(ok(R.score)){tadd('Categoría de riesgo por SCORE2 según la edad (tabla 6)',CATN[catTabla6(S.age,R.score)].toLowerCase());tadd('Categoría de riesgo por SCORE2 según ESC/EAS 2025',cat2025(R.score).toLowerCase());}
+  if(ok(R.scoreDM))tadd('Categoría de riesgo por SCORE2-Diabetes (tabla 6)',CATN[catTabla6(S.age,R.scoreDM)].toLowerCase());
+  if(R.lod.length)tadd('Lesión de órgano diana',lcl(R.lod));
+  if(R.evs.length)tadd('Enfermedad vascular subclínica',lcl(R.evs));
+  if(R.mods.length)tadd('Factores moduladores del riesgo',lcl(R.mods));
+  if(S.dm)tadd('Factores de riesgo vascular asociados a la diabetes',R.frv.length?R.frv.join(', ')+' ('+R.frv.length+')':'ninguno');
+  if(ok(R.ldlT)){tadd('Objetivo de cLDL (tabla 12)','<'+R.ldlT+' mg/dL'+(R.cat>=1?' y descenso ≥50 %':''));tadd('Objetivo de colesterol no HDL','<'+R.nhT+' mg/dL');
+    if(ok(R.ldl)&&ok(R.goal))tadd('Situación respecto al objetivo de cLDL',R.ldl<=R.goal?'alcanzado':'no alcanzado (exceso de '+f(R.ldl-R.goal)+' mg/dL)');
+    if(ok(R.ldlBase)&&ok(R.goal)&&R.ldl>R.goal){const m=REGIMENS.map(r=>({n:r[0],p:r[1]})).filter(r=>r.p>0&&R.ldlBase*(1-r.p/100)<=R.goal).sort((x,y)=>x.p-y.p)[0];tadd('Pauta hipolipemiante mínima que alcanza la meta (tabla 11)',m?lc(m.n)+' ('+m.p+' %, cLDL esperado '+f(R.ldlBase*(1-m.p/100))+' mg/dL)':'ninguna pauta de la tabla 11 alcanza la meta');}}
+  const csc=v('csc');if(ok(csc))tadd('Calcio score coronario',csc===0?'sin calcio':csc<100?'carga de placa ligera':csc<300?'carga moderada, reclasifica al alza':csc<1000?'carga grave, equivale a prevención secundaria':'carga muy grave');
+  if(R.G)tadd('Estadio de filtrado KDIGO',R.G+' ('+EQN[R.eqUsed]+')');
+  if(R.Acat)tadd('Categoría de albuminuria KDIGO',R.Acat);
+  if(R.G&&R.Acat)tadd('Riesgo pronóstico KDIGO',['bajo','moderado','alto','muy alto'][KDIGO_MAP[R.G][['A1','A2','A3'].indexOf(R.Acat)]]);
+  tadd('Enfermedad renal crónica según la SEA (tabla 7, nota c)',R.ckd==='grave'?'avanzada, riesgo vascular muy alto':R.ckd==='moderada'?'moderada, riesgo vascular alto':R.G?'sin criterio de ERC de riesgo':null);
+  if(R.k4){const k=R.k8||R.k4;const tx=[];if(k.y5>=0.03)tx.push('derivar a nefrología');if(k.y2>=0.10)tx.push('atención multidisciplinar');if(k.y2>=0.40)tx.push('preparar tratamiento renal sustitutivo');tadd('Interpretación del KFRE (KDIGO 2024)',tx.length?tx.join(', '):'riesgo bajo de fallo renal'+(R.egfr>=60?' (KFRE no validada con FGe ≥60)':''));}
+  if(R.lipDx)R.lipDx.forEach(d=>tadd('Diagnóstico lipídico · '+d[0],lc(d[1])));
+  if(R.lipRef&&R.lipRef.length)tadd('Criterio de derivación a Unidad de Lípidos (tabla 40)',R.lipRef.join(', '));
+  if(R.dlcn&&R.dlcn.tot>0)tadd('Dutch Lipid Clinic Network (anexo 6)',R.dlcn.tot+' puntos, '+lc(R.dlcn.cls));
+  if(R.pcsk)tadd('Criterio SEA de iPCSK9 (tabla 13) · '+R.pcsk.name,ok(R.pcsk.ld)?(R.pcsk.yes?'cumple (cLDL >'+R.pcsk.th+' mg/dL)':'no cumple (umbral >'+R.pcsk.th+' mg/dL)'):'falta cLDL');
+  if(R.bpc){tadd('Categoría de presión arterial en consulta (tabla 14)',lc(R.bpc.n)+(R.bpc.isol?', sistólica aislada':''));if(R.htaStage)tadd('Estadio de la HTA',String(R.htaStage));}
+  if(R.oh!=null)tadd('Hipotensión ortostática',R.oh?'sí':'no');
+  if(R.mapaPh)tadd('Fenotipo de presión arterial por MAPA',lc(R.mapaPh));
+  if(R.mapaNoct!=null)tadd('HTA nocturna',R.mapaNoct?'sí':'no');
+  if(R.glyRows)R.glyRows.forEach(r=>tadd('Clasificación glucémica por '+lc(r[0]),lc(r[1].split('·').pop().trim())));
+  if(R.bmiCls)tadd('Clasificación por IMC (tabla 27)',lc(R.bmiCls));
+  if(R.smc)tadd('Síndrome metabólico (tabla 24)',(R.sm?'sí':'no')+', '+R.smc.length+' de 5 criterios'+(R.smc.length?' ('+lcl(R.smc)+')':''));
+  if(R.fag!=null)tadd('Test de Fagerström (anexo 7)',R.fag+'/10');
+  if(R.hsi!=null)tadd('Índice de gravedad del tabaquismo (anexo 8)',R.hsi+'/6, dependencia '+(R.hsi<=2?'baja':R.hsi<=4?'moderada':'alta'));
+  if(R.alc)tadd('Consumo de alcohol respecto al límite',R.alc.g/7>R.alc.lim?'supera '+R.alc.lim+' g/día':'dentro del límite de '+R.alc.lim+' g/día');
+  if(R.medas)tadd('MEDAS (anexo 3)',R.medas+'/14, '+(R.medas>=9?'buena':'baja')+' adherencia a la dieta mediterránea');
+  if(R.ipaq)tadd('Nivel de actividad física (IPAQ, anexo 4)',R.ipaq.lvl.toLowerCase());
+  if(R.cha)tadd('CHA₂DS₂-VA (tabla 33)',R.cha.pts+'/9, '+lc(R.cha.rec.replace(/\.$/,'')));
+  if(R.doac)tadd('Dosis de ACOD en FA (tabla 35)',R.doac.map(r=>r[0]+' '+r[1]).join(', '));
+  if(ok(R.itbMin))tadd('Índice tobillo/brazo',R.itbMin<0.9?'patológico (<0,9), enfermedad arterial periférica':R.itbMax>=1.4?'≥1,4, sugiere calcificación arterial':'normal');
+  if(R.edin)tadd('Cuestionario de Edimburgo (anexo 1)',lc(R.edin));
+  if(R.squed!=null)tadd('SQUED (anexo 2)',R.squed+'/15, '+(R.squed<=12?'sugiere disfunción eréctil':'sin disfunción eréctil'));
+  if(F.cfs)tadd('Escala Clínica de Fragilidad',F.cfs+'/9, '+(F.cfs<=3?'no frágil':F.cfs===4?'vulnerable':F.cfs<=8?'frágil':'enfermo terminal'));
+  if(F.state!=null)tadd('Escala FRAIL',F.frailN+'/5, '+(F.frailN>=3?'frágil':F.frailN>=1?'prefrágil':'robusto'));
+  if(F.friedAny||F.fried.length)tadd('Fenotipo de Fried',F.fried.length+'/5, '+(F.fried.length>=3?'frágil':F.fried.length>=1?'prefrágil':'robusto')+(F.fried.length?' ('+F.fried.join(', ')+')':''));
+  if(F.sppb!=null)tadd('SPPB',F.sppb+'/12 (equilibrio '+F.sppbParts.bal+', marcha '+F.sppbParts.gp+', silla '+F.sppbParts.cp+'), '+(F.sppb<10?'frágil':'no frágil'));
+  if(F.barthelN)tadd('Índice de Barthel',F.barthel+'/100'+(F.barthelDone?', '+(F.barthel===100?'independiente':F.barthel>=60?'dependencia leve':F.barthel>=40?'dependencia moderada':F.barthel>=20?'dependencia grave':'dependencia total'):', incompleto ('+F.barthelN+' de 10 ítems)'));
+  if(F.state!=null)tadd('Situación global de fragilidad',['robusto','prefrágil','frágil'][F.state]+(F.flags.length?' ('+F.flags.join(', ')+')':''));
+  out.push('3. RESULTADOS DE ESCALAS, CUESTIONARIOS Y ESTRATIFICACIÓN');out.push(T.length?T.join('; ')+'.':'No hay resultados disponibles.');out.push('');}
+  out.push('Herramienta de apoyo a la decisión basada en los Estándares SEA 2026 (Clín Investig Arterioscler 2026;38:500889). No sustituye el juicio clínico.');
+  return out.join('\n');}
+
+function renderFull(){const ta=$('full');if(!ta)return;const par=s('o_fmt')==='par';ta.value=par?narrative():fullText();ta.style.whiteSpace=par?'pre-wrap':'pre';$('o_tab').closest('label').hidden=par;}
+
+// ===== Informe =====
+function report(){const S=window.__S,R=window.__R;const L=[];
+  L.push('EVALUACIÓN DEL RIESGO VASCULAR (Estándares SEA 2026)');
+  if(ok(S.age))L.push(`Paciente: ${S.sex==='m'?'varón':'mujer'}, ${f(S.age)} años${ok(R.bmi)?', IMC '+f(R.bmi,1)+' kg/m²':''}.`);
+  if(R.cat!=null)L.push(`Riesgo vascular global: ${CATN[R.cat].toUpperCase()}. ${R.why.join('; ')}.`);
+  if(ok(R.score))L.push(`${R.model}: ${pct(R.score)} a 10 años${R.lpaC>1?' (ajustado por Lp(a): '+pct(R.scoreAdj)+')':''}.`);
+  if(ok(R.scoreDM))L.push(`SCORE2-Diabetes: ${pct(R.scoreDM)}.`);
+  if(R.vage)L.push(`Edad vascular: ${f(R.vage.v)} años.`);
+  if(ok(S.sbp))L.push(`PA ${f(S.sbp)}/${f(S.dbp)} mmHg (${bpCat(S.sbp,S.dbp).n}).`);
+  if(ok(S.tc))L.push(`Lípidos: CT ${f(S.tc)}, cHDL ${f(S.hdl)}, TG ${f(S.tg)}, cLDL ${f(R.ldl)} (${R.ldlSrc||'—'}), c-no-HDL ${f(R.nonhdl)} mg/dL${ok(R.lpaMg)?', Lp(a) '+f(R.lpaMg)+' mg/dL':''}.`);
+  if(ok(R.ldlT))L.push(`Objetivo: cLDL <${R.ldlT} mg/dL${R.cat>=1?' y descenso ≥50 %':''}; c-no-HDL <${R.nhT} mg/dL.${ok(R.goal)&&ok(R.ldl)?(R.ldl>R.goal?' No alcanzado.':' Alcanzado.'):''}`);
+  if(ok(R.egfr))L.push(`Función renal: FGe ${f(R.egfr)} mL/min/1,73 m² (${EQN[R.eqUsed]}), ${R.G}${R.Acat?' '+R.Acat+' (CAC '+f(R.acr)+' mg/g)':''}${R.ckd?'; ERC '+R.ckd:''}.`);
+  if(R.k4){const k=R.k8||R.k4;L.push(`KFRE ${R.k8?'8':'4'} variables: ${pct(k.y2)} a 2 años, ${pct(k.y5)} a 5 años.`);}
+  if(R.lod.length)L.push('LOD: '+R.lod.join(', ')+'.');
+  if(R.evs.length)L.push('EVS: '+R.evs.join(', ')+'.');
+  if(R.mods.length)L.push('Moduladores: '+R.mods.join(', ')+'.');
+  return L.join('\n');}
+function toast(t){const e=$('toast');e.textContent=t;e.hidden=false;clearTimeout(toast._);toast._=setTimeout(()=>e.hidden=true,1800);}
+$('bRep').addEventListener('click',()=>{const t=report();
+  const fb=()=>{$('repBox').hidden=false;$('rep').value=t;$('rep').focus();$('rep').select();};
+  try{navigator.clipboard.writeText(t).then(()=>toast('Informe copiado'),fb);}catch(_){fb();}});
+
+// ===== Ejemplo =====
+const EXAMPLE={age:58,sex:'m',wt:88,ht:172,region:'low',smk:'2',sbp:148,dbp:88,tc:232,hdl:42,tg:180,lpa:85,lpaU:'mg',regimen:'0',htaTx:true,dm:'0',
+  cr:1.45,crU:'mg',cys:1.3,acr:120,acrU:'mgg',eqSel:'auto',kfreReg:'non',ca:9.4,phos:3.8,alb:4.1,hco3:24,
+  glu:108,waist:104,cpd:20,yrs:35,fa1:'2',fa4:'1',beer:1000,wine:700,sbpSt:140,dbpSt:86,csc:180,m_sed:true};
+function fill(o){document.querySelectorAll('input,select').forEach(e=>{if(!e.id||e.id==='rep'||e.id.startsWith('o_'))return;
+  if(e.type==='checkbox')e.checked=!!o[e.id];else if(e.tagName==='SELECT'){e.value=o[e.id]!=null?String(o[e.id]):e.options[0].value;}else e.value=o[e.id]!=null?o[e.id]:'';});render();}
+$('bEx').addEventListener('click',()=>{fill(EXAMPLE);toast('Ejemplo cargado')});
+$('bClr').addEventListener('click',()=>{fill({sex:'m',region:'low',smk:'0',regimen:'0',dm:'0',lpaU:'mg',crU:'mg',acrU:'mgg',eqSel:'auto',kfreReg:'non'});toast('Datos vaciados')});
+document.addEventListener('input',e=>{if(e.target.id!=='rep'&&e.target.id!=='full')render();});
+document.addEventListener('change',e=>{if(e.target.id!=='rep'&&e.target.id!=='full')render();});
+$('bFull').addEventListener('click',()=>{showTab('rep');try{history.replaceState(null,'','#rep')}catch(_){}$('full').scrollIntoView({block:'start'});});
+$('bSel').addEventListener('click',()=>{$('full').focus();$('full').select();});
+$('bCopyFull').addEventListener('click',()=>{const t=$('full').value;const fb=()=>{$('full').focus();$('full').select();toast('Texto seleccionado: cópialo con Ctrl/Cmd + C');};
+  try{navigator.clipboard.writeText(t).then(()=>toast('Texto copiado'),fb);}catch(_){fb();}});
+fill(EXAMPLE);showTab(location.hash.slice(1));
+</script>
